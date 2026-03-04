@@ -62,7 +62,9 @@ class DialogueBox:
         self.tick_timer += dt_ms
         while self.tick_timer >= self.tick_interval_ms:
             self.tick_timer -= self.tick_interval_ms
-            self.char_index = min(self.char_index + self.chars_per_tick, len(self.full_text))
+            self.char_index = min(
+                self.char_index + self.chars_per_tick, len(self.full_text)
+            )
         if self.char_index >= len(self.full_text):
             self.finished = True
 
@@ -75,7 +77,9 @@ class DialogueBox:
         # Semi-transparent box
         box_surf = pygame.Surface((self.box_w, self.box_height), pygame.SRCALPHA)
         box_surf.fill((10, 10, 30, 200))
-        pygame.draw.rect(box_surf, (100, 100, 140, 180), (0, 0, self.box_w, self.box_height), 2)
+        pygame.draw.rect(
+            box_surf, (100, 100, 140, 180), (0, 0, self.box_w, self.box_height), 2
+        )
         screen.blit(box_surf, (self.margin, self.box_y))
 
         # Speaker name

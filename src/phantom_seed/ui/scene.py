@@ -136,7 +136,8 @@ class SceneRenderer:
         """Apply a scene's stage commands."""
         # Hide character sprites for cinematic CG scenes
         from phantom_seed.ai.protocol import VisualType
-        self.hide_sprites = (scene.visual_type == VisualType.CINEMATIC_CG)
+
+        self.hide_sprites = scene.visual_type == VisualType.CINEMATIC_CG
 
         # Update background — only load real image files (AI-generated paths)
         if scene.background and scene.background != self.bg_path:
