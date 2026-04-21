@@ -350,11 +350,7 @@ class Engine:
         self.scene_renderer.background = None
         self.scene_renderer.bg_path = ""
 
-        if self.coordinator.character and self.coordinator.character_sprite_path:
-            self.scene_renderer.set_character_sprite_path(
-                self.coordinator.character.name,
-                self.coordinator.character_sprite_path,
-            )
+        self._register_heroine_sprites()
 
         # Restore backlog
         self._backlog = [BacklogEntry(**e) for e in data.backlog]
@@ -387,11 +383,7 @@ class Engine:
         self._dialogue_index = 0
 
         assert self.scene_renderer is not None
-        if self.coordinator and self.coordinator.character:
-            self.scene_renderer.set_character_sprite_path(
-                self.coordinator.character.name,
-                self.coordinator.character_sprite_path,
-            )
+        self._register_heroine_sprites()
         self.scene_renderer.apply_scene(scene)
 
         # Start transition
@@ -516,7 +508,12 @@ class Engine:
         # HUD
         if self.coordinator:
             assert self.hud is not None
-            self.hud.render(self.screen, self.coordinator.state.affection)
+            self.hud.render(
+                self.screen,
+                self.coordinator.state.affection,
+                self.coordinator.state.active_heroine,
+                self.coordinator.state.route_phase,
+            )
 
         # Dialogue
         if self.phase in (GamePhase.DIALOGUE, GamePhase.TRANSITION):
@@ -549,3 +546,10 @@ class Engine:
         hint = self._loading_font.render("点击任意处返回主菜单", True, (150, 130, 145))
         hx = (self.config.screen_width - hint.get_width()) // 2
         self.screen.blit(hint, (hx, self.config.screen_height - 100))
+
+    def _register_heroine_sprites(self) -> None:
+        if not self.coordinator or not self.scene_renderer:
+            return
+        for heroine in getattr(self.coordinator, "heroines", []):
+            sprite_path = self.coordinator.heroine_sprite_paths.get(heroine.name)
+            self.scene_renderer.set_character_sprite_path(heroine.name, sprite_path)

@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-SAVE_VERSION = "2.0"
+SAVE_VERSION = "3.0"
 SLOT_NAMES = ["QUICK", "1", "2", "3"]
 
 
@@ -49,13 +49,23 @@ class SaveData:
     atmosphere: str
     # GameState
     affection: int
+    heroine_affection: dict[str, int]
+    active_heroine: str
+    route_phase: str
+    route_locked_to: str
     round_number: int
     history: list[str]
     memory_fragments: list[str]
+    continuity_notes: list[str]
+    open_threads: list[str]
+    recent_locations: list[str]
+    latest_hook: str
     is_ending: bool
     # Character
     character_data: dict[str, Any]
     character_sprite_path: str | None
+    heroines_data: list[dict[str, Any]]
+    heroine_sprite_paths: dict[str, str]
     # Assets
     bg_cache: dict[str, str]
     # Scene
@@ -78,6 +88,16 @@ class SaveData:
         d.pop("is_game_over", None)
         if "affection" not in d:
             d["affection"] = 0
+        d.setdefault("heroine_affection", {})
+        d.setdefault("active_heroine", "")
+        d.setdefault("route_phase", "common")
+        d.setdefault("route_locked_to", "")
+        d.setdefault("continuity_notes", [])
+        d.setdefault("open_threads", [])
+        d.setdefault("recent_locations", [])
+        d.setdefault("latest_hook", "")
+        d.setdefault("heroines_data", [])
+        d.setdefault("heroine_sprite_paths", {})
         return SaveData(**d)
 
 
@@ -127,9 +147,17 @@ class SaveSystem:
             seed_hash=coordinator.seed_hash,
             atmosphere=coordinator.atmosphere,
             affection=st.affection,
+            heroine_affection=dict(st.heroine_affection),
+            active_heroine=st.active_heroine,
+            route_phase=st.route_phase,
+            route_locked_to=st.route_locked_to,
             round_number=st.round_number,
             history=list(st.history),
             memory_fragments=list(st.memory_fragments),
+            continuity_notes=list(st.continuity_notes),
+            open_threads=list(st.open_threads),
+            recent_locations=list(st.recent_locations),
+            latest_hook=st.latest_hook,
             is_ending=st.is_ending,
             character_data=char.model_dump() if char else {},
             character_sprite_path=(
@@ -137,6 +165,10 @@ class SaveSystem:
                 if coordinator.character_sprite_path
                 else None
             ),
+            heroines_data=[heroine.model_dump() for heroine in coordinator.heroines],
+            heroine_sprite_paths={
+                name: str(path) for name, path in coordinator.heroine_sprite_paths.items()
+            },
             bg_cache=dict(coordinator._bg_cache),
             current_scene_data=current_scene.model_dump() if current_scene else None,
             dialogue_index=dialogue_index,
@@ -190,9 +222,17 @@ class SaveSystem:
         coordinator.atmosphere = data.atmosphere
         st = coordinator.state
         st.affection = data.affection
+        st.heroine_affection = dict(data.heroine_affection)
+        st.active_heroine = data.active_heroine
+        st.route_phase = data.route_phase
+        st.route_locked_to = data.route_locked_to
         st.round_number = data.round_number
         st.history = list(data.history)
         st.memory_fragments = list(data.memory_fragments)
+        st.continuity_notes = list(data.continuity_notes)
+        st.open_threads = list(data.open_threads)
+        st.recent_locations = list(data.recent_locations)
+        st.latest_hook = data.latest_hook
         st.is_ending = data.is_ending
 
         # Restore character
@@ -201,6 +241,20 @@ class SaveSystem:
         coordinator.character_sprite_path = (
             Path(data.character_sprite_path) if data.character_sprite_path else None
         )
+        coordinator.heroines = [
+            CharacterProfile.model_validate(item) for item in data.heroines_data
+        ]
+        coordinator.heroine_sprite_paths = {
+            name: Path(path) for name, path in data.heroine_sprite_paths.items()
+        }
+        if coordinator.heroines:
+            for heroine in coordinator.heroines:
+                if heroine.name == st.active_heroine:
+                    coordinator.character = heroine
+                    coordinator.character_sprite_path = coordinator.heroine_sprite_paths.get(
+                        heroine.name
+                    )
+                    break
 
         # Restore bg cache
         import threading

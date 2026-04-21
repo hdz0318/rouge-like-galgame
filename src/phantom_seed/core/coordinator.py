@@ -12,6 +12,7 @@ from phantom_seed.ai.imagen_client import ImagenClient
 from phantom_seed.ai.protocol import (
     FALLBACK_SCENE,
     CharacterProfile,
+    Choice,
     SceneData,
     VisualType,
 )
@@ -42,6 +43,8 @@ class GameCoordinator:
         self.state = GameState(
             affection=config.initial_affection,
         )
+        self.heroines: list[CharacterProfile] = []
+        self.heroine_sprite_paths: dict[str, Path] = {}
         self.character: CharacterProfile | None = None
         self.seed_hash: str = ""
         self.atmosphere: str = ""
@@ -51,11 +54,179 @@ class GameCoordinator:
         self._bg_cache: dict[str, str] = {}
         self._bg_lock = threading.Lock()
 
+    def _heroine_variants(self, seed_string: str) -> list[tuple[str, str]]:
+        variants: list[tuple[str, str]] = []
+        for idx in range(3):
+            variant_hash = hash_seed(f"{seed_string}:heroine:{idx}")
+            variants.append((variant_hash, derive_trait_code(variant_hash)))
+        return variants
+
+    def _fallback_heroine(self, index: int) -> CharacterProfile:
+        fallback_names = ["朝雾 澪", "七濑 诗织", "久远 纱夜"]
+        fallback_hair = ["long silver hair", "wavy chestnut hair", "short black bob hair"]
+        fallback_eyes = ["violet eyes", "amber eyes", "emerald eyes"]
+        fallback_styles = [
+            "soft knit cardigan and long skirt",
+            "smart casual blouse and fitted slacks",
+            "layered monochrome jacket and pleated skirt",
+        ]
+        return CharacterProfile(
+            name=fallback_names[index % len(fallback_names)],
+            personality="外表沉着克制。熟悉之后会露出温柔而有些笨拙的一面。她有很强的行动力，也藏着不愿轻易示人的脆弱。",
+            speech_pattern="说话简洁，但会在关键时刻补上一句非常真诚的话。情绪波动时会故作平静。熟人面前偶尔会露出一点带笑的吐槽语气。",
+            visual_description=(
+                "an attractive adult university student woman, "
+                f"{fallback_hair[index % len(fallback_hair)]}, "
+                f"{fallback_eyes[index % len(fallback_eyes)]}, "
+                f"{fallback_styles[index % len(fallback_styles)]}, "
+                "distinctive accessory, elegant anime visual novel style"
+            ),
+            signature_look=(
+                f"{fallback_hair[index % len(fallback_hair)]} with "
+                f"{fallback_eyes[index % len(fallback_eyes)]}"
+            ),
+            backstory="她在校园里看上去总是很从容，但其实一直背负着未说出口的压力。正因如此，她格外珍惜真正理解自己的人。",
+            secrets=["有不愿被别人发现的兴趣", "紧张时会下意识摸自己的配饰", "对亲近的人非常护短"],
+            relationship_to_player="起初只是偶然结识，但在一次次共同经历中逐渐发展出不同寻常的羁绊。",
+        )
+
+    def _generate_heroines(self, seed_string: str) -> None:
+        self.heroines.clear()
+        self.heroine_sprite_paths.clear()
+        for idx, (seed_hash, trait_code) in enumerate(self._heroine_variants(seed_string)):
+            try:
+                heroine = self.character_chain.invoke(seed_hash, trait_code)
+            except Exception:
+                log.exception("Failed to generate heroine %s", idx)
+                heroine = self._fallback_heroine(idx)
+            self.heroines.append(heroine)
+            self.state.register_heroine(heroine.name, initial_affection=self.config.initial_affection)
+
+    def _cast_summary(self) -> str:
+        if not self.heroines:
+            return "暂无女主阵容。"
+        chunks = []
+        for heroine in self.heroines:
+            score = self.state.heroine_score(heroine.name)
+            chunks.append(
+                "\n".join(
+                    [
+                        f"- {heroine.name}",
+                        f"  - 当前好感: {score}",
+                        f"  - 性格: {heroine.personality}",
+                        f"  - 说话方式: {heroine.speech_pattern}",
+                        f"  - 视觉锚点: {heroine.signature_look or heroine.visual_description[:80]}",
+                        f"  - 初始关系: {heroine.relationship_to_player}",
+                    ]
+                )
+            )
+        return "\n".join(chunks)
+
+    def _pick_focus_heroine(self) -> CharacterProfile | None:
+        if not self.heroines:
+            return None
+        self.state.update_route_state()
+        target_name = self.state.route_locked_to or self.state.active_heroine
+        if not target_name and self.state.ranked_heroines():
+            target_name = self.state.ranked_heroines()[0][0]
+        if not target_name:
+            target_name = self.heroines[min(self.state.round_number % len(self.heroines), len(self.heroines) - 1)].name
+        for heroine in self.heroines:
+            if heroine.name == target_name:
+                self.state.set_active_heroine(heroine.name)
+                self.character = heroine
+                self.character_sprite_path = self.heroine_sprite_paths.get(heroine.name)
+                return heroine
+        heroine = self.heroines[0]
+        self.state.set_active_heroine(heroine.name)
+        self.character = heroine
+        self.character_sprite_path = self.heroine_sprite_paths.get(heroine.name)
+        return heroine
+
+    def heroine_sprite_items(self) -> list[tuple[str, Path]]:
+        return list(self.heroine_sprite_paths.items())
+
+    def _heroine_names(self) -> list[str]:
+        return [heroine.name for heroine in self.heroines]
+
+    def _ending_target(self) -> str:
+        heroine_name = self.state.route_locked_to or self.state.active_heroine
+        if not heroine_name:
+            return "暂未决定结局等级。"
+        grade = self.state.ending_grade(heroine_name)
+        return f"{heroine_name} 线路目标结局：{grade}"
+
+    def _normalize_choices(self, scene: SceneData) -> None:
+        heroine_names = self._heroine_names()
+        if not scene.choices:
+            focus_name = self.state.route_locked_to or self.state.active_heroine
+            if not focus_name and heroine_names:
+                focus_name = heroine_names[0]
+            if focus_name:
+                scene.choices = [
+                    Choice(
+                        text=f"靠近{focus_name}",
+                        target_state_delta={
+                            "affection": 3,
+                            f"heroine:{focus_name}": 5,
+                        },
+                    ),
+                    Choice(
+                        text="暂时保持距离",
+                        target_state_delta={"affection": 0},
+                    ),
+                ]
+        if not scene.choices:
+            return
+
+        if self.state.route_phase == "lock_window" and heroine_names:
+            for idx, choice in enumerate(scene.choices[: len(heroine_names)]):
+                delta = choice.target_state_delta
+                if not any(key.startswith("heroine:") for key in delta):
+                    heroine_name = heroine_names[idx % len(heroine_names)]
+                    delta[f"heroine:{heroine_name}"] = max(4, delta.get("affection", 2))
+        elif self.state.route_locked_to:
+            locked = self.state.route_locked_to
+            for choice in scene.choices:
+                delta = choice.target_state_delta
+                if "affection" in delta and f"heroine:{locked}" not in delta:
+                    delta[f"heroine:{locked}"] = delta["affection"]
+
+    def _postprocess_scene(self, scene: SceneData) -> SceneData:
+        self._normalize_choices(scene)
+        if self.state.route_phase in ("climax", "ending"):
+            scene.game_state_update.is_climax = True
+        if self.state.route_phase == "ending":
+            scene.game_state_update.is_ending = True
+            locked = self.state.route_locked_to or self.state.active_heroine
+            ending_grade = self.state.ending_grade(locked) if locked else "normal"
+            if not scene.next_hook:
+                scene.next_hook = f"{locked or '该线路'}结局：{ending_grade}"
+            if locked and not scene.scene_goal:
+                scene.scene_goal = f"{locked}线路的{ending_grade}结局收束"
+        return scene
+
     def _bg_key(self, desc: str) -> str:
         """Normalize a background description into a cache key."""
         return desc.lower().strip()[:80]
 
-    def _get_or_generate_bg(self, desc: str, *, is_cg: bool = False) -> str | None:
+    def _scene_reference_images(self) -> list[Path]:
+        refs: list[Path] = []
+        if self.character_sprite_path and self.character_sprite_path.exists():
+            refs.append(self.character_sprite_path)
+        if self.current_scene and self.current_scene.background:
+            bg_path = Path(self.current_scene.background)
+            if bg_path.exists():
+                refs.append(bg_path)
+        return refs
+
+    def _get_or_generate_bg(
+        self,
+        desc: str,
+        *,
+        is_cg: bool = False,
+        references: list[Path] | None = None,
+    ) -> str | None:
         """Return cached bg path or generate a new one. Thread-safe."""
         key = self._bg_key(desc)
         with self._bg_lock:
@@ -65,9 +236,12 @@ class GameCoordinator:
         # Generate outside the lock so we don't block other threads
         try:
             if is_cg:
-                path = self.imagen.generate_cg(desc)
+                path = self.imagen.generate_cg(desc, references=references)
             else:
-                path = self.imagen.generate_background(desc)
+                path = self.imagen.generate_background(
+                    desc,
+                    references=references,
+                )
             if path:
                 with self._bg_lock:
                     self._bg_cache[key] = str(path)
@@ -79,6 +253,7 @@ class GameCoordinator:
     def _generate_transition_bgs_async(self, scene: SceneData) -> None:
         """Fire-and-forget: pre-generate backgrounds for all scene_transitions."""
         descs = set()
+        refs = self._scene_reference_images()
         for line in scene.script:
             if line.scene_transition:
                 descs.add(line.scene_transition)
@@ -90,6 +265,7 @@ class GameCoordinator:
             t = threading.Thread(
                 target=self._get_or_generate_bg,
                 args=(desc,),
+                kwargs={"references": refs},
                 daemon=True,
             )
             t.start()
@@ -123,31 +299,57 @@ class GameCoordinator:
         """Initialize a new game run from a seed string."""
         self._emit_progress(progress_cb, 1, 5, "解析种子")
         self.seed_hash = hash_seed(seed_string)
-        trait_code = derive_trait_code(self.seed_hash)
         self.atmosphere = derive_initial_atmosphere(self.seed_hash)
 
-        # Generate character
-        self._emit_progress(progress_cb, 2, 5, "生成人设")
-        try:
-            self.character = self.character_chain.invoke(self.seed_hash, trait_code)
-            log.info("Character generated: %s", self.character.name)
-        except Exception:
-            log.exception("Failed to generate character")
-            self.character = CharacterProfile(
-                name="???",
-                personality="温柔而神秘，让人忍不住想要了解更多",
-                speech_pattern="说话轻声细语，偶尔会害羞地低下头",
-                visual_description="an attractive adult university student woman with long pink hair and blue eyes, casual stylish outfit, gentle smile",
+        # Generate heroine roster
+        self._emit_progress(progress_cb, 2, 5, "生成女主阵容")
+        self.heroines.clear()
+        self.heroine_sprite_paths.clear()
+        variants = self._heroine_variants(seed_string)
+        for idx, (seed_hash, trait_code) in enumerate(variants, start=1):
+            self._emit_progress(progress_cb, 2, 5, f"生成人设 {idx}/{len(variants)}")
+            try:
+                heroine = self.character_chain.invoke(
+                    seed_hash,
+                    trait_code,
+                    progress_cb=lambda message, idx=idx, total=len(variants): (
+                        self._emit_progress(
+                            progress_cb,
+                            2,
+                            5,
+                            f"人设 {idx}/{total} {message}",
+                        )
+                    ),
+                )
+            except Exception:
+                log.exception("Failed to generate heroine %s", idx - 1)
+                heroine = self._fallback_heroine(idx - 1)
+            self.heroines.append(heroine)
+            self.state.register_heroine(
+                heroine.name,
+                initial_affection=self.config.initial_affection,
             )
+        self._pick_focus_heroine()
 
-        # Generate sprite
+        # Generate sprites
         self._emit_progress(progress_cb, 3, 5, "生成角色立绘")
-        try:
-            self.character_sprite_path = self.imagen.generate_character_sprite(
-                self.character.visual_description
+        total_heroines = max(1, len(self.heroines))
+        for idx, heroine in enumerate(self.heroines, start=1):
+            self._emit_progress(
+                progress_cb,
+                3,
+                5,
+                f"立绘 {idx}/{total_heroines} {heroine.name}",
             )
-        except Exception:
-            log.exception("Failed to generate character sprite")
+            try:
+                sprite_path = self.imagen.generate_character_sprite(
+                    heroine.visual_description
+                )
+                if sprite_path:
+                    self.heroine_sprite_paths[heroine.name] = sprite_path
+            except Exception:
+                log.exception("Failed to generate heroine sprite: %s", heroine.name)
+        self._pick_focus_heroine()
 
         # Generate first scene
         self._emit_progress(progress_cb, 4, 5, "生成首个场景")
@@ -168,20 +370,36 @@ class GameCoordinator:
             self.state.apply_delta(choice_delta)
 
         self.state.advance_round()
+        self.state.update_route_state()
+        focus_heroine = self._pick_focus_heroine()
         random_event = roll_random_event(self.state.round_number, self.state.affection)
 
         self._emit_progress(progress_cb, 2, 6, "生成剧情")
         try:
-            assert self.character is not None
+            assert focus_heroine is not None
             scene = self.scene_chain.invoke(
-                character_profile=self.character,
+                character_profile=focus_heroine,
+                cast_summary=self._cast_summary(),
+                active_heroine=self.state.active_heroine,
                 affection=self.state.affection,
                 round_number=self.state.round_number,
                 history_summary=self.state.get_history_summary(),
+                story_memory=self.state.get_story_memory(),
+                route_blueprint=self.state.route_blueprint(),
+                ending_target=self._ending_target(),
                 last_choice=player_choice,
                 random_event=random_event,
                 chapter_beat=self.state.chapter_beat,
+                route_phase=self.state.route_phase,
+                route_locked_to=self.state.route_locked_to,
+                progress_cb=lambda message: self._emit_progress(
+                    progress_cb,
+                    2,
+                    6,
+                    message,
+                ),
             )
+            scene = self._postprocess_scene(scene)
         except Exception:
             log.exception("Scene generation failed, using fallback")
             scene = FALLBACK_SCENE
@@ -191,21 +409,43 @@ class GameCoordinator:
 
         # Record history (multiple lines for longer scenes)
         self._emit_progress(progress_cb, 3, 6, "整理状态")
+        self.state.remember_scene(scene)
         if scene.script:
             speakers = set(
                 l.speaker for l in scene.script if l.speaker not in ("旁白", "系统")
             )
-            summary = f"[场景{self.state.round_number}] {', '.join(speakers)} — {scene.script[0].text[:40]}"
+            opening = scene.script[0].text[:28]
+            goal = scene.scene_goal[:24] if scene.scene_goal else "关系推进"
+            summary = (
+                f"[场景{self.state.round_number}] {', '.join(speakers)}"
+                f" | {goal} | {opening}"
+            )
             self.state.add_history(summary)
+            if self.state.round_number % 3 == 0:
+                self.state.memory_fragments.append(
+                    generate_memory_fragment(
+                        self.state.history,
+                        self.state.round_number,
+                    )
+                )
+                self.state.memory_fragments = self.state.memory_fragments[-8:]
 
         # Generate main background (or CG)
         self._emit_progress(progress_cb, 4, 6, "生成主视觉")
+        references = self._scene_reference_images()
         if scene.visual_type == VisualType.CINEMATIC_CG and scene.climax_cg_prompt:
-            path = self._get_or_generate_bg(scene.climax_cg_prompt, is_cg=True)
+            path = self._get_or_generate_bg(
+                scene.climax_cg_prompt,
+                is_cg=True,
+                references=references,
+            )
             if path:
                 scene.background = path
         elif scene.background:
-            path = self._get_or_generate_bg(scene.background)
+            path = self._get_or_generate_bg(
+                scene.background,
+                references=references,
+            )
             if path:
                 scene.background = path
 

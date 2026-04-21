@@ -23,6 +23,7 @@ class _TerminalProgressBar:
         self.title = title
         self.total = max(1, total)
         self.width = 28
+        self.message_width = 44
         self._lock = threading.Lock()
         self._started_at = time.time()
 
@@ -34,9 +35,10 @@ class _TerminalProgressBar:
             filled = int(self.width * ratio)
             bar = "#" * filled + "-" * (self.width - filled)
             elapsed = time.time() - self._started_at
+            clipped = message[: self.message_width].ljust(self.message_width)
             line = (
                 f"\r{self.title:<8} |{bar}| {percent:>3d}% "
-                f"{elapsed:>5.1f}s {message:<20}"
+                f"{elapsed:>6.1f}s {clipped}"
             )
             print(line, end="", file=sys.stdout, flush=True)
 
@@ -48,9 +50,10 @@ class _TerminalProgressBar:
             filled = int(self.width * ratio)
             bar = "#" * filled + "-" * (self.width - filled)
             elapsed = time.time() - self._started_at
+            clipped = message[: self.message_width].ljust(self.message_width)
             line = (
                 f"\r{self.title:<8} |{bar}| {percent:>3d}% "
-                f"{elapsed:>5.1f}s {message:<20}"
+                f"{elapsed:>6.1f}s {clipped}"
             )
             print(line, end="", file=sys.stdout, flush=True)
             print(file=sys.stdout, flush=True)

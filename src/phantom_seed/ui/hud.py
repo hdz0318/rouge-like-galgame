@@ -23,18 +23,31 @@ class HUD:
         if self.font is None:
             self.font = get_font(16)
 
-    def render(self, screen: pygame.Surface, affection: int) -> None:
+    def render(
+        self,
+        screen: pygame.Surface,
+        affection: int,
+        heroine_name: str = "",
+        route_phase: str = "",
+    ) -> None:
         self._ensure_font()
         assert self.font is not None
 
         # Background panel
-        panel_w = self.bar_width + 120
+        panel_w = self.bar_width + 260
         panel_h = self.bar_height + self.spacing * 2
         panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
         panel.fill((0, 0, 0, 140))
         screen.blit(panel, (self.x - 8, self.y - 4))
 
         y = self.y
+        if heroine_name:
+            label = heroine_name
+            if route_phase == "heroine_route":
+                label = f"{heroine_name}线"
+            name_surf = self.font.render(label, True, (255, 220, 235))
+            screen.blit(name_surf, (self.x, y))
+            y += 18
         self._draw_bar(
             screen, "好感度", affection, 100, y,
             (255, 150, 180), (100, 50, 70),

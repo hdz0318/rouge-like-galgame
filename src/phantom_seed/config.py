@@ -47,12 +47,34 @@ class Config:
     fps: int = 60
     title: str = "Phantom Seed"
 
-    # Gemini API
-    gemini_api_key: str = field(
-        default_factory=lambda: os.environ.get("GEMINI_API_KEY", "")
+    # OpenRouter API
+    openrouter_api_key: str = field(
+        default_factory=lambda: os.environ.get("OPENROUTER_API_KEY", "")
     )
-    text_model: str = "gemini-3.1-pro-preview"
-    image_model: str = "gemini-3.1-flash-image-preview"
+    text_model: str = field(
+        default_factory=lambda: os.environ.get(
+            "OPENROUTER_TEXT_MODEL",
+            "deepseek/deepseek-v3.2",
+        )
+    )
+    draft_text_model: str = field(
+        default_factory=lambda: os.environ.get(
+            "OPENROUTER_DRAFT_TEXT_MODEL",
+            "google/gemini-3-flash-preview",
+        )
+    )
+    image_model: str = field(
+        default_factory=lambda: os.environ.get(
+            "OPENROUTER_IMAGE_MODEL",
+            "google/gemini-3.1-flash-image-preview",
+        )
+    )
+    promo_image_model: str = field(
+        default_factory=lambda: os.environ.get(
+            "OPENROUTER_PROMO_IMAGE_MODEL",
+            "google/gemini-3-pro-image-preview",
+        )
+    )
 
     # Game defaults
     initial_affection: int = 0

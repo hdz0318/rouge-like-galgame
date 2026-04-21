@@ -49,6 +49,20 @@ class GameStateUpdate(BaseModel):
     is_ending: bool = False
 
 
+class ScenePlan(BaseModel):
+    """High-level narrative plan used before drafting a scene."""
+
+    scene_purpose: str
+    opening_situation: str
+    emotional_beats: list[str] = Field(default_factory=list)
+    continuity_must_use: list[str] = Field(default_factory=list)
+    location_sequence: list[str] = Field(default_factory=list)
+    conflict_turn: str = ""
+    payoff_target: str = ""
+    ending_hook: str = ""
+    choice_design: list[str] = Field(default_factory=list)
+
+
 class SceneData(BaseModel):
     """A single scene segment returned by the AI."""
 
@@ -60,6 +74,11 @@ class SceneData(BaseModel):
     climax_cg_prompt: str = ""
     choices: list[Choice] = Field(default_factory=list)
     game_state_update: GameStateUpdate = Field(default_factory=GameStateUpdate)
+    scene_goal: str = ""
+    emotional_shift: str = ""
+    continuity_notes: list[str] = Field(default_factory=list)
+    open_threads: list[str] = Field(default_factory=list)
+    next_hook: str = ""
 
 
 class CharacterProfile(BaseModel):
@@ -69,6 +88,7 @@ class CharacterProfile(BaseModel):
     personality: str
     speech_pattern: str
     visual_description: str
+    signature_look: str = ""
     backstory: str = ""
     secrets: list[str] = Field(default_factory=list)
     relationship_to_player: str = ""

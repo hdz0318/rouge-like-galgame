@@ -1,15 +1,17 @@
 """Visual prompt templates for image generation (plain strings, not LangChain)."""
 
 VISUAL_PROMPT_TEMPLATE = """\
-ONE SINGLE ILLUSTRATION, ONE COMPLETE GIRL ONLY. anime style, beautiful adult woman, full body, \
-standing pose facing front, neutral expression, {description}, \
-pure white background, no bg elements, NO CHARACTER SHEETS, NO VARIATIONS, NO OTHER PEOPLE, \
-NO MULTIPLE POSES, NO MULTIPLE EXPRESSIONS, NO GRID LAYOUT, SINGLE IMAGE ONLY,\
-high quality line art, soft lighting, pastel colors\
+PREMIUM JAPANESE VISUAL NOVEL SPRITE, CONSISTENT POLISHED ANIME RENDERING, ONE SINGLE HEROINE ONLY. \
+full body standing character, entire head to feet visible, centered composition, upright posture, \
+front-facing or slight 3/4 facing, clean silhouette, calm readable pose, {description}, \
+pure white or transparent-style plain background, no props, no furniture, no scenery, no text, \
+NO OTHER PEOPLE, NO SECOND CHARACTER, NO CROPPED BODY, NO CUT-OFF FEET, NO EXTRA LIMBS, \
+NO CHARACTER SHEET, NO MULTIPLE POSES, NO MULTIPLE EXPRESSIONS, NO SPLIT PANEL, SINGLE IMAGE ONLY, \
+uniform visual novel sprite style, refined line art, soft cel shading, stable proportions, elegant colors\
 """
 
 CG_PROMPT_TEMPLATE = """\
-anime style CG illustration, beautiful adult woman, {description}, \
+premium anime visual novel CG, consistent character design, {description}, \
 warm lighting, cinematic composition, \
 high detail, emotional scene, visual novel style, pastel tones\
 """
