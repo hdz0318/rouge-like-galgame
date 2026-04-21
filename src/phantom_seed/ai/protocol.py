@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class VisualType(str, Enum):
@@ -34,9 +34,19 @@ class StageCommand(BaseModel):
 
 class DialogueLine(BaseModel):
     speaker: str
-    text: str
+    text: str = ""
     inner_monologue: str = ""
     scene_transition: str = ""  # if set, switch background before rendering this line
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_missing_text(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        if "text" not in data or data.get("text") is None:
+            fallback = data.get("inner_monologue") or data.get("scene_transition") or ""
+            data = {**data, "text": fallback}
+        return data
 
 
 class Choice(BaseModel):

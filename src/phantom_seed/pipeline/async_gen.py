@@ -76,6 +76,10 @@ class AsyncPipeline:
         self._generating = False
         self._progress_bar: _TerminalProgressBar | None = None
         self._progress_total = 0
+        self._progress_title = ""
+        self._progress_step = 0
+        self._progress_message = ""
+        self._progress_started_at = 0.0
 
     @property
     def is_generating(self) -> bool:
@@ -88,20 +92,40 @@ class AsyncPipeline:
 
     def _start_progress(self, title: str, total: int) -> None:
         self._progress_total = max(1, total)
+        self._progress_title = title
+        self._progress_step = 0
+        self._progress_message = "开始"
+        self._progress_started_at = time.time()
         self._progress_bar = _TerminalProgressBar(title, self._progress_total)
         self._progress_bar.update(0, "开始")
 
     def _on_progress(self, step: int, total: int, message: str) -> None:
         if total != self._progress_total or self._progress_bar is None:
             self._start_progress("生成中", total)
+        self._progress_step = min(max(step, 0), max(1, total))
+        self._progress_message = message
         assert self._progress_bar is not None
         self._progress_bar.update(step, message)
 
     def _finish_progress(self, ok: bool, message: str) -> None:
         if self._progress_bar is not None:
             self._progress_bar.close(ok=ok, message=message)
+        self._progress_step = self._progress_total if ok else max(0, self._progress_total - 1)
+        self._progress_message = message
         self._progress_bar = None
-        self._progress_total = 0
+
+    def get_progress_snapshot(self) -> dict[str, object]:
+        total = max(1, self._progress_total)
+        started_at = self._progress_started_at
+        elapsed = max(0.0, time.time() - started_at) if started_at else 0.0
+        return {
+            "title": self._progress_title or "生成中",
+            "step": min(max(self._progress_step, 0), total),
+            "total": total,
+            "message": self._progress_message or "准备中",
+            "elapsed": elapsed,
+            "is_generating": self._generating,
+        }
 
     def request_init(self, seed: str) -> None:
         """Start game initialization in the background with terminal progress."""

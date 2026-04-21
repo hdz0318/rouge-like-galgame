@@ -37,10 +37,6 @@ class SceneChain:
             "review": "剧情审校",
         }.get(stage, stage)
         kind = str(event.get("type", ""))
-        if kind == "delta":
-            approx = int(event.get("approx_completion_tokens", 0) or 0)
-            chars = int(event.get("received_chars", 0) or 0)
-            return f"{stage_label} 已收{approx}tok/{chars}字"
         if kind == "final":
             usage = event.get("usage")
             if isinstance(usage, dict) and usage:
@@ -52,12 +48,7 @@ class SceneChain:
                     f"出{completion_tokens}tok 总{total_tokens}tok"
                 )
             return f"{stage_label} 完成"
-        if kind == "retry":
-            attempt = int(event.get("attempt", 0) or 0) + 1
-            return f"{stage_label} 重试 第{attempt}次"
-        if kind == "keepalive":
-            return f"{stage_label} 模型处理中"
-        return f"{stage_label} 处理中"
+        return f"{stage_label} 模型处理中"
 
     def invoke(
         self,
@@ -100,7 +91,6 @@ class SceneChain:
             schema_model=ScenePlan,
             temperature=0.55,
             max_tokens=4096,
-            reasoning={"effort": "high", "exclude": True},
             stream_progress=(
                 (lambda event: progress_cb(self._format_progress("plan", event)))
                 if progress_cb
@@ -115,7 +105,6 @@ class SceneChain:
             schema_model=SceneData,
             temperature=0.9,
             max_tokens=8192,
-            reasoning={"effort": "minimal", "exclude": True},
             stream_progress=(
                 (lambda event: progress_cb(self._format_progress("draft", event)))
                 if progress_cb
@@ -137,7 +126,6 @@ class SceneChain:
             schema_model=SceneData,
             temperature=0.45,
             max_tokens=8192,
-            reasoning={"effort": "high", "exclude": True},
             stream_progress=(
                 (lambda event: progress_cb(self._format_progress("review", event)))
                 if progress_cb

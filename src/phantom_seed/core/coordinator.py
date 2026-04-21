@@ -210,10 +210,14 @@ class GameCoordinator:
         """Normalize a background description into a cache key."""
         return desc.lower().strip()[:80]
 
-    def _scene_reference_images(self) -> list[Path]:
+    def _scene_character_references(self) -> list[Path]:
         refs: list[Path] = []
         if self.character_sprite_path and self.character_sprite_path.exists():
             refs.append(self.character_sprite_path)
+        return refs
+
+    def _scene_background_references(self) -> list[Path]:
+        refs: list[Path] = []
         if self.current_scene and self.current_scene.background:
             bg_path = Path(self.current_scene.background)
             if bg_path.exists():
@@ -253,7 +257,7 @@ class GameCoordinator:
     def _generate_transition_bgs_async(self, scene: SceneData) -> None:
         """Fire-and-forget: pre-generate backgrounds for all scene_transitions."""
         descs = set()
-        refs = self._scene_reference_images()
+        refs = self._scene_background_references()
         for line in scene.script:
             if line.scene_transition:
                 descs.add(line.scene_transition)
@@ -432,19 +436,20 @@ class GameCoordinator:
 
         # Generate main background (or CG)
         self._emit_progress(progress_cb, 4, 6, "生成主视觉")
-        references = self._scene_reference_images()
+        character_refs = self._scene_character_references()
+        background_refs = self._scene_background_references()
         if scene.visual_type == VisualType.CINEMATIC_CG and scene.climax_cg_prompt:
             path = self._get_or_generate_bg(
                 scene.climax_cg_prompt,
                 is_cg=True,
-                references=references,
+                references=character_refs + background_refs,
             )
             if path:
                 scene.background = path
         elif scene.background:
             path = self._get_or_generate_bg(
                 scene.background,
-                references=references,
+                references=background_refs,
             )
             if path:
                 scene.background = path

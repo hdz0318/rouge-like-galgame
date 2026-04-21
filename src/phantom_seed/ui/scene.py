@@ -14,6 +14,9 @@ from phantom_seed.ui.assets import create_placeholder, load_image
 class CharacterSprite:
     """Tracks a character's on-screen position and animation."""
 
+    _TARGET_HEIGHT_RATIO = 1.08
+    _BOTTOM_CROP_MARGIN = 180
+
     def __init__(self, char_id: str, sprite_path: Path | None = None) -> None:
         self.char_id = char_id
         self.sprite_path = sprite_path
@@ -32,7 +35,8 @@ class CharacterSprite:
             # Load at original resolution to get true aspect ratio
             orig = load_image(self.sprite_path)
             if orig:
-                target_h = int(screen_h * 0.78)
+                # Deliberately oversize sprites so the scene reads as bust / upper-body shots.
+                target_h = int(screen_h * self._TARGET_HEIGHT_RATIO)
                 orig_w, orig_h = orig.get_size()
                 target_w = (
                     int(orig_w * target_h / orig_h)
@@ -46,7 +50,7 @@ class CharacterSprite:
             r = 30 + (h_val >> 16 & 0xFF) % 80
             g = 15 + (h_val >> 8 & 0xFF) % 50
             b = 50 + (h_val & 0xFF) % 100
-            self.surface = create_placeholder(200, int(screen_h * 0.6), (r, g, b))
+            self.surface = create_placeholder(360, int(screen_h * 0.92), (r, g, b))
 
     def set_position(self, pos: Position, screen_w: int) -> None:
         positions = {
@@ -173,7 +177,7 @@ class SceneRenderer:
             sprite.y = (
                 self.screen_h
                 - (sprite.surface.get_height() if sprite.surface else 400)
-                - 20
+                + CharacterSprite._BOTTOM_CROP_MARGIN
             )
 
         elif cmd.action == StageAction.LEAVE:

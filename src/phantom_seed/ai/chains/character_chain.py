@@ -21,16 +21,12 @@ class CharacterChain:
     def __init__(self, config: Config) -> None:
         self._client = OpenRouterClient(config.openrouter_api_key)
         self._model = config.text_model
-        self._temperature = 0.8
-        self._max_tokens = 4096
+        self._temperature = 0.65
+        self._max_tokens = 1400
 
     @staticmethod
     def _format_progress(event: dict[str, object]) -> str:
         kind = str(event.get("type", ""))
-        if kind == "delta":
-            approx = int(event.get("approx_completion_tokens", 0) or 0)
-            chars = int(event.get("received_chars", 0) or 0)
-            return f"人设生成中 已收{approx}tok/{chars}字"
         if kind == "final":
             usage = event.get("usage")
             if isinstance(usage, dict) and usage:
@@ -42,9 +38,6 @@ class CharacterChain:
                     f"总{total_tokens}tok"
                 )
             return "人设完成"
-        if kind == "retry":
-            attempt = int(event.get("attempt", 0) or 0) + 1
-            return f"人设请求重试 第{attempt}次"
         return "人设生成中"
 
     def invoke(
@@ -60,7 +53,6 @@ class CharacterChain:
             schema_model=CharacterProfile,
             temperature=self._temperature,
             max_tokens=self._max_tokens,
-            reasoning={"effort": "medium", "exclude": True},
             stream_progress=(
                 (lambda event: progress_cb(self._format_progress(event)))
                 if progress_cb

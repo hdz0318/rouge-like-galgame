@@ -54,7 +54,7 @@ class Config:
     text_model: str = field(
         default_factory=lambda: os.environ.get(
             "OPENROUTER_TEXT_MODEL",
-            "deepseek/deepseek-v3.2",
+            "openai/gpt-4.1-mini",
         )
     )
     draft_text_model: str = field(

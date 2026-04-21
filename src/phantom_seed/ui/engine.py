@@ -415,7 +415,10 @@ class Engine:
                         self.scene_renderer.background = bg
                         self.scene_renderer.bg_path = cached
             self.dialogue_box.set_dialogue(
-                line.speaker, line.text, line.inner_monologue
+                line.speaker,
+                line.text,
+                line.inner_monologue,
+                portrait_path=self._speaker_portrait_path(line.speaker),
             )
             # Append to backlog
             scene_id = self.current_scene.scene_id if self.current_scene else ""
@@ -486,13 +489,89 @@ class Engine:
     def _render_loading(self) -> None:
         assert self.screen is not None
         assert self._loading_font is not None
+        assert self._title_font is not None
 
         self.screen.fill((50, 40, 55))
 
+        snapshot = (
+            self.pipeline.get_progress_snapshot()
+            if self.pipeline is not None
+            else {
+                "title": "生成中",
+                "step": 0,
+                "total": 1,
+                "message": "准备中",
+                "elapsed": 0.0,
+            }
+        )
+        step = int(snapshot.get("step", 0) or 0)
+        total = max(1, int(snapshot.get("total", 1) or 1))
+        ratio = max(0.0, min(1.0, step / total))
+        percent = int(ratio * 100)
+        message = str(snapshot.get("message", "准备中"))
+        elapsed = float(snapshot.get("elapsed", 0.0) or 0.0)
+
+        panel_w = min(760, self.config.screen_width - 120)
+        panel_h = 220
+        panel_x = (self.config.screen_width - panel_w) // 2
+        panel_y = (self.config.screen_height - panel_h) // 2 - 20
+        panel = pygame.Surface((panel_w, panel_h), pygame.SRCALPHA)
+        panel.fill((30, 22, 36, 210))
+        pygame.draw.rect(panel, (156, 118, 146, 230), panel.get_rect(), 2, 18)
+        self.screen.blit(panel, (panel_x, panel_y))
+
         dots = "." * self._loading_dots
         text = self._loading_font.render(f"正在生成{dots}", True, (220, 190, 210))
-        tx = (self.config.screen_width - text.get_width()) // 2
-        self.screen.blit(text, (tx, self.config.screen_height // 2 - 15))
+        tx = panel_x + (panel_w - text.get_width()) // 2
+        self.screen.blit(text, (tx, panel_y + 26))
+
+        stage = self._loading_font.render(message, True, (240, 228, 236))
+        sx = panel_x + (panel_w - stage.get_width()) // 2
+        self.screen.blit(stage, (sx, panel_y + 72))
+
+        bar_x = panel_x + 48
+        bar_y = panel_y + 124
+        bar_w = panel_w - 96
+        bar_h = 20
+        pygame.draw.rect(
+            self.screen,
+            (68, 54, 76),
+            (bar_x, bar_y, bar_w, bar_h),
+            border_radius=10,
+        )
+        fill_w = max(18, int(bar_w * ratio)) if step > 0 else 0
+        if fill_w > 0:
+            pygame.draw.rect(
+                self.screen,
+                (226, 170, 198),
+                (bar_x, bar_y, fill_w, bar_h),
+                border_radius=10,
+            )
+
+        meta_left = self._loading_font.render(
+            f"{step}/{total}  {percent}%",
+            True,
+            (210, 190, 205),
+        )
+        self.screen.blit(meta_left, (bar_x, bar_y + 34))
+
+        meta_right = self._loading_font.render(
+            f"{elapsed:0.1f}s",
+            True,
+            (210, 190, 205),
+        )
+        self.screen.blit(
+            meta_right,
+            (bar_x + bar_w - meta_right.get_width(), bar_y + 34),
+        )
+
+        hint = self._loading_font.render(
+            "后台仍在继续生成，阶段进度会实时刷新",
+            True,
+            (160, 142, 156),
+        )
+        hx = panel_x + (panel_w - hint.get_width()) // 2
+        self.screen.blit(hint, (hx, panel_y + 176))
 
     def _render_game(self) -> None:
         assert self.screen is not None
@@ -553,3 +632,17 @@ class Engine:
         for heroine in getattr(self.coordinator, "heroines", []):
             sprite_path = self.coordinator.heroine_sprite_paths.get(heroine.name)
             self.scene_renderer.set_character_sprite_path(heroine.name, sprite_path)
+
+    def _speaker_portrait_path(self, speaker: str) -> str | None:
+        if not self.coordinator or speaker in ("", "旁白", "系统"):
+            return None
+        normalized = speaker.lower().replace(" ", "")
+        for name, path in self.coordinator.heroine_sprite_paths.items():
+            if not path:
+                continue
+            candidate = name.lower().replace(" ", "")
+            if normalized == candidate or normalized in candidate or candidate in normalized:
+                return str(path)
+        if self.coordinator.character_sprite_path:
+            return str(self.coordinator.character_sprite_path)
+        return None
