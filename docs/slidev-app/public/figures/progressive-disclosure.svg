@@ -1,0 +1,24 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg6" x1="80" y1="40" x2="1120" y2="680" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#FDFCF8"/>
+    </linearGradient>
+  </defs>
+  <rect x="20" y="20" width="1160" height="680" rx="36" fill="url(#bg6)"/>
+  <rect x="120" y="110" width="960" height="500" rx="34" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="4"/>
+  <rect x="170" y="164" width="860" height="106" rx="24" fill="#E0F2FE"/>
+  <rect x="170" y="298" width="860" height="142" rx="24" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="2"/>
+  <rect x="170" y="468" width="270" height="92" rx="24" fill="#DCFCE7"/>
+  <rect x="470" y="468" width="270" height="92" rx="24" fill="#FEF3C7"/>
+  <rect x="770" y="468" width="260" height="92" rx="24" fill="#F3E8FF"/>
+  <text x="230" y="226" font-size="32" font-family="Arial, sans-serif" font-weight="700" fill="#0F172A">Default view</text>
+  <text x="230" y="352" font-size="28" font-family="Arial, sans-serif" font-weight="700" fill="#0F172A">Story, character, choices</text>
+  <text x="230" y="394" font-size="22" font-family="Arial, sans-serif" fill="#475569">show the essentials first</text>
+  <text x="305" y="523" text-anchor="middle" font-size="26" font-family="Arial, sans-serif" font-weight="700" fill="#0F172A">Progress</text>
+  <text x="605" y="523" text-anchor="middle" font-size="26" font-family="Arial, sans-serif" font-weight="700" fill="#0F172A">Trace</text>
+  <text x="900" y="523" text-anchor="middle" font-size="26" font-family="Arial, sans-serif" font-weight="700" fill="#0F172A">Diagnostics</text>
+  <path d="M900 468V330" stroke="#A855F7" stroke-width="8" stroke-linecap="round" stroke-dasharray="12 14"/>
+  <path d="M605 468V330" stroke="#F59E0B" stroke-width="8" stroke-linecap="round" stroke-dasharray="12 14"/>
+  <path d="M305 468V330" stroke="#22C55E" stroke-width="8" stroke-linecap="round" stroke-dasharray="12 14"/>
+</svg>
