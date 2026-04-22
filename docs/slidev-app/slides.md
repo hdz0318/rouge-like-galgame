@@ -153,7 +153,7 @@ layout: cover
 
 <div class="metric-card p-4">
 
-**让生成内容进入系统**
+**生成结果可被系统消费**
 
 让模型输出不再只是展示结果，而是能够参与剧情推进、场景切换与交互反馈。
 
@@ -161,7 +161,7 @@ layout: cover
 
 <div class="metric-card p-4">
 
-**形成稳定交互闭环**
+**形成完整交互链路**
 
 把文本生成、图像生成、界面渲染与玩家选择连接起来，形成完整的可运行链路。
 
@@ -169,16 +169,13 @@ layout: cover
 
 <div class="metric-card p-4">
 
-**保证原型可用可演示**
+**保证原型稳定运行**
 
 即使模型输出波动，也通过工程兜底、缓存和状态管理保证系统能够持续运行。
 
 </div>
 
 </div>
-
-<!-- 引用：Anthropic, Effective context engineering for AI agents, https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents -->
-<!-- 引用：Anthropic, Managing context on the Claude Developer Platform, https://www.anthropic.com/news/context-management -->
 
 ---
 
@@ -318,34 +315,6 @@ layout: cover
 
 ---
 
-# 稳定性机制
-
-<div class="page-kicker">Stability</div>
-
-<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
-
-<div>
-
-为了让多阶段生成真正可运行，我们补充了若干稳定性机制：
-
-- 结构化输出：降低解析不确定性
-- 状态化工作流：保证流程具有阶段性与顺序性
-- 进度回调：便于前端展示生成进度
-- 运行 Trace：便于开发、调试与答辩说明
-- 质量门控：在输出进入系统前进行校验
-
-这些机制的重点不在于复刻某一框架，而在于提升流程的稳定性、可观测性与可控性。
-
-</div>
-
-<div>
-  <img src="/figures/langchain-mechanisms.svg" alt="workflow mechanisms" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
-</div>
-
-</div>
-
----
-
 # 结构化协议
 
 <div class="page-kicker">Structured Protocol</div>
@@ -371,43 +340,6 @@ layout: cover
 
 <div>
   <img src="/figures/scene-protocol.svg" alt="structured scene protocol" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
-</div>
-
-</div>
-
----
-
-# 记忆 + 协议的意义
-
-<div class="page-kicker">State & Protocol</div>
-
-<div class="grid grid-cols-2 gap-4 mt-4 text-sm leading-relaxed">
-
-<div class="section-card p-5">
-
-**分层记忆**
-
-- 短期记忆负责当前剧情推进
-- 长期记忆负责角色与世界设定保持稳定
-- 检索机制负责在新场景开始前提取相关历史信息
-
-这样可以在有限上下文窗口内保留真正有用的历史内容。
-
-</div>
-
-<div class="section-card p-5">
-
-**结构化协议 `SceneData`**
-
-- `script`
-- `stage_commands`
-- `choices`
-- `background`
-- `game_state_update`
-- `continuity_notes`
-
-它把记忆检索结果、场景生成结果和游戏状态更新统一到同一数据接口中，保证流程可解析、可追踪、可续写。
-
 </div>
 
 </div>
@@ -465,6 +397,9 @@ layout: cover
 </div>
 
 </div>
+
+<!-- 引用：Anthropic, Effective context engineering for AI agents, https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents -->
+<!-- 引用：Anthropic, Managing context on the Claude Developer Platform, https://www.anthropic.com/news/context-management -->
 
 ---
 
@@ -548,11 +483,11 @@ layout: cover
 
 <div class="page-kicker">Significance</div>
 
-本项目说明了三件事：
+本项目的价值主要体现在三个层面：
 
-- **AIGC 可以进入真实互动系统**：不是只生成静态内容，而是能参与可运行应用流程
-- **多 Agent 更适合复杂叙事任务**：尤其适用于持续、多约束、带状态的生成场景
-- **工程机制与模型能力同样重要**：结构化协议、状态管理和兜底设计决定系统是否可用
+- **应用层面**：AIGC 不再停留于静态内容生成，而是能够进入可运行的互动系统
+- **方法层面**：多 Agent 更适合处理持续、多约束、带状态的叙事生成任务
+- **工程层面**：结构化协议、状态管理与兜底机制决定系统能否稳定运行
 
 因此，我们关注的不只是“模型生成了什么”，更是“生成结果能否被系统稳定使用”。
 
@@ -586,7 +521,7 @@ layout: cover
 
 > 对互动叙事任务而言，多 Agent 协同比单次生成更适合处理持续、多约束、带状态的内容生成问题。
 
-我们希望说明，互动叙事系统的重点不仅是生成能力本身，更在于如何把生成结果组织为一个可执行、可维护、可扩展的完整流程。
+互动叙事系统的重点不仅是生成能力本身，更在于如何把生成结果组织为可执行、可维护、可扩展的完整流程。
 
 ---
 layout: center
