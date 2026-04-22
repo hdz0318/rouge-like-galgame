@@ -10,17 +10,98 @@ mdc: true
 layout: cover
 ---
 
-
-
 # Phantom Seed
 ## 基于多 Agent 协同的互动叙事游戏生成系统
 
 <div class="mt-10 text-sm leading-relaxed text-slate-600">
 
-课程：AIGC 课程  
-小组成员：`请替换`  
-汇报人：`请替换`  
-日期：`请替换`
+小组成员：022330225 黄耘青 / 202330218 何东泽 / 162340124 吴承骏
+汇报人：022330225 黄耘青  
+日期：4月23日
+
+</div>
+
+---
+
+# 功能展示
+
+<div class="page-kicker">What The System Can Do</div>
+
+<div class="grid grid-cols-3 gap-4 mt-5 text-sm leading-relaxed">
+
+<div class="metric-card p-4">
+
+**生成可玩的剧情场景**
+
+不是只生成一段文本，而是直接输出可进入游戏流程的场景内容，包括对白、选项、状态变化与下一步推进线索。
+
+</div>
+
+<div class="metric-card p-4">
+
+**联动文本、图像与交互**
+
+系统会同时生成剧情文本、背景/立绘描述与舞台调度信息，并将其交给前端界面直接渲染和响应。
+
+</div>
+
+<div class="metric-card p-4">
+
+**支持持续多轮运行**
+
+玩家每一次选择都会反馈到状态机与记忆模块，从而影响后续剧情和图像生成方向，而不是一次性静态出图。
+
+</div>
+
+</div>
+
+<div class="accent-note p-4 mt-5 text-sm leading-relaxed">
+
+**一句话概括**
+
+我们做的不是“生成内容演示”，而是一个能够把 AIGC 内容真正接入互动叙事流程的可运行原型。
+
+</div>
+
+---
+
+# Demo：运行效果
+
+<div class="page-kicker">Live Screens</div>
+
+<div class="grid grid-cols-2 gap-4 mt-3">
+
+<div class="section-card p-4">
+
+**单角色剧情场景**
+
+<img src="/screenshots/1.png" alt="单角色场景" class="w-full max-h-[15rem] object-contain rounded-lg shadow mt-3" />
+
+<div class="text-xs leading-snug mt-3">
+
+- 背景、立绘、对白与选项同时进入游戏界面
+- 玩家点击选项后，系统继续生成下一幕内容
+- 说明 AI 输出已被程序稳定消费，而非停留在文本结果
+
+</div>
+
+</div>
+
+<div class="section-card p-4">
+
+**多角色舞台调度**
+
+<img src="/screenshots/image.png" alt="多角色舞台" class="w-full max-h-[15rem] object-contain rounded-lg shadow mt-3" />
+
+<div class="text-xs leading-snug mt-3">
+
+- 输出不仅有对白，还包含角色站位、出入场等舞台指令
+- 程序依据 `stage_commands` 控制视觉呈现
+- 说明结构化结果能够同时驱动叙事与界面渲染
+
+</div>
+
+</div>
 
 </div>
 
@@ -34,25 +115,344 @@ layout: cover
 
 <div class="metric-card p-4">
 
-**目标一：内容进入流程**
+**让生成内容进入系统**
 
-本项目希望将 AIGC 生成内容从“静态展示结果”推进到“可被游戏系统实际消费”的层面，使模型输出能够参与剧情推进、场景切换与交互反馈。
-
-</div>
-
-<div class="metric-card p-4">
-
-**目标二：形成交互闭环**
-
-系统需要同时协调文本生成、图像生成与玩家选择，使三者之间形成稳定联动，而不是彼此割裂的独立模块。
+让模型输出不再只是展示结果，而是能够参与剧情推进、场景切换与交互反馈。
 
 </div>
 
 <div class="metric-card p-4">
 
-**目标三：保证系统可用**
+**形成稳定交互闭环**
 
-在模型输出存在波动、失败或不稳定的情况下，仍通过工程机制维持原型系统的可运行性与可演示性。
+把文本生成、图像生成、界面渲染与玩家选择连接起来，形成完整的可运行链路。
+
+</div>
+
+<div class="metric-card p-4">
+
+**保证原型可用可演示**
+
+即使模型输出波动，也通过工程兜底、缓存和状态管理保证系统能够持续运行。
+
+</div>
+
+</div>
+
+---
+
+# 核心创新点
+
+<div class="page-kicker">Highlights</div>
+
+<div class="grid grid-cols-2 gap-4 mt-4 text-sm leading-relaxed">
+
+<div class="section-card p-5">
+
+**创新点一：多 Agent 分阶段生成**
+
+将“规划、写作、检查、收敛”拆开，避免单模型一次性生成时出现跑题、失控和质量波动。
+
+</div>
+
+<div class="section-card p-5">
+
+**创新点二：结构化协议驱动游戏**
+
+定义 `SceneData` 作为中间层，使模型输出能被前端、状态机和场景续写模块稳定解析与消费。
+
+</div>
+
+<div class="section-card p-5">
+
+**创新点三：共享状态与记忆机制**
+
+引入分层记忆架构，将当前场景上下文与长期角色知识分开管理，保证多轮叙事的连续性与可扩展性。
+
+</div>
+
+<div class="section-card p-5">
+
+**创新点四：多模态闭环落地**
+
+把文本、图像、交互和状态更新放进同一运行链路中，让玩家选择真正影响后续生成。
+
+</div>
+
+</div>
+
+---
+
+# 系统总体方案
+
+<div class="page-kicker">Architecture</div>
+
+<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
+
+<div>
+
+我们将场景生成流程抽象为四类 Agent：
+
+- `Planner`：负责剧情目标、节拍安排与连续性约束
+- `Writer`：负责生成场景草稿、对白与候选选项
+- `Critic`：负责质量检查、逻辑核对与问题识别
+- `Reviewer`：负责整合修改意见并输出最终结果
+
+**核心流程**：规划 → 生成 → 检查 → 交付
+
+这样做的关键价值，是把“内容生产”和“质量控制”显式分离，使复杂叙事任务更可控、更稳定。
+
+</div>
+
+<div>
+  <img src="/figures/agent-workflow.svg" alt="multi-agent workflow" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
+</div>
+
+</div>
+
+---
+
+# Agent 记忆机制
+
+<div class="page-kicker">Memory Architecture</div>
+
+<div class="grid grid-cols-2 gap-4 mt-4 text-sm leading-relaxed">
+
+<div class="section-card p-5">
+
+**短期记忆 Short-term Memory**
+
+- 保存最近若干幕剧情、当前场景目标与玩家最新选择
+- 记录本轮对话中的情绪、冲突、未完成动作与临时约束
+- 以滑动窗口方式维护，保证生成时始终聚焦“眼前正在发生什么”
+
+</div>
+
+<div class="section-card p-5">
+
+**长期记忆 Long-term Memory**
+
+- 持久保存角色设定、世界观规则、关键事件和已埋伏笔
+- 将高价值历史内容压缩为可复用的记忆条目，而非简单拼接全文
+- 用于支撑跨章节一致性，避免角色性格、关系和设定漂移
+
+</div>
+
+<div class="accent-note p-4 col-span-2 text-sm leading-relaxed">
+
+**设计思路**
+
+短期记忆保证当前场景连贯，长期记忆保证跨场景稳定；两者结合，才能让互动叙事既“接得上当前剧情”，又“记得住过去发生过什么”。
+
+</div>
+
+</div>
+
+---
+
+# 记忆如何参与生成
+
+<div class="page-kicker">Memory Loop</div>
+
+<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
+
+<div>
+
+我们将记忆机制设计为一个“写入 - 检索 - 回注”的循环：
+
+- 场景结束后，系统抽取关键事实、人物关系变化与伏笔信息
+- 高价值信息写入长期记忆库，近期过程保留在短期上下文中
+- 新一轮生成前，`Planner` 和 `Writer` 先检索与当前路线最相关的记忆
+- 检索结果以结构化摘要形式回注到 Prompt，供 `Critic` 检查连续性
+
+这样做的目标，是避免把所有历史内容都塞进上下文窗口，同时仍然保留“该记住的内容”。
+
+</div>
+
+<div>
+  <img src="/figures/shared-memory.svg" alt="shared memory blackboard" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
+</div>
+
+</div>
+
+---
+
+# 稳定性机制
+
+<div class="page-kicker">Stability</div>
+
+<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
+
+<div>
+
+为了让多阶段生成真正可运行，我们补充了若干稳定性机制：
+
+- 结构化输出：降低解析不确定性
+- 状态化工作流：保证流程具有阶段性与顺序性
+- 进度回调：便于前端展示生成进度
+- 运行 Trace：便于开发、调试与答辩说明
+- 质量门控：在输出进入系统前进行校验
+
+这些机制的重点不在于复刻某一框架，而在于提升流程的稳定性、可观测性与可控性。
+
+</div>
+
+<div>
+  <img src="/figures/langchain-mechanisms.svg" alt="workflow mechanisms" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
+</div>
+
+</div>
+
+---
+
+# 结构化协议
+
+<div class="page-kicker">Structured Protocol</div>
+
+<div class="grid grid-cols-[0.92fr_1.08fr] gap-6 items-center text-sm leading-relaxed mt-3">
+
+<div>
+
+为了避免自由文本直接驱动程序，我们定义了结构化协议 `SceneData`。
+
+核心字段包括：
+
+- `script`
+- `stage_commands`
+- `choices`
+- `background`
+- `game_state_update`
+- `continuity_notes`
+
+它一方面保证程序能够稳定解析模型输出，另一方面为 UI 渲染、状态更新与场景续写提供统一接口。
+
+</div>
+
+<div>
+  <img src="/figures/scene-protocol.svg" alt="structured scene protocol" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
+</div>
+
+</div>
+
+---
+
+# 记忆 + 协议的意义
+
+<div class="page-kicker">State & Protocol</div>
+
+<div class="grid grid-cols-2 gap-4 mt-4 text-sm leading-relaxed">
+
+<div class="section-card p-5">
+
+**分层记忆**
+
+- 短期记忆负责当前剧情推进
+- 长期记忆负责角色与世界设定保持稳定
+- 检索机制负责在新场景开始前提取相关历史信息
+
+这样可以在有限上下文窗口内保留真正有用的历史内容。
+
+</div>
+
+<div class="section-card p-5">
+
+**结构化协议 `SceneData`**
+
+- `script`
+- `stage_commands`
+- `choices`
+- `background`
+- `game_state_update`
+- `continuity_notes`
+
+它把记忆检索结果、场景生成结果和游戏状态更新统一到同一数据接口中，保证流程可解析、可追踪、可续写。
+
+</div>
+
+</div>
+
+---
+
+# 多模态闭环
+
+<div class="page-kicker">Multimodal Loop</div>
+
+<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
+
+<div>
+
+本系统不是只生成文本，而是让多个模块协同工作：
+
+- 文本模块生成剧情目标、对白与视觉描述
+- 图像模块生成背景、立绘与 CG
+- UI 层依据结构化结果完成呈现与交互
+- 玩家选择反馈给状态机，影响下一轮生成
+
+因此，系统形成的是一个持续迭代的多模态闭环，而不是一次性内容生成。
+
+</div>
+
+<div>
+  <img src="/figures/multimodal-loop.svg" alt="multimodal generation loop" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
+</div>
+
+</div>
+
+---
+
+# 渐进式披露
+
+<div class="page-kicker">Context Loading</div>
+
+<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
+
+<div>
+
+这里的“渐进式披露”并不是指界面展示，而是指 **对模型上下文按需装载**：
+
+- 默认只注入当前场景目标、最近剧情和必要角色状态
+- 当任务涉及连续性、伏笔或人物关系时，再检索相关长期记忆
+- 诊断信息、历史细节和低相关内容不会一次性全部塞入 Prompt
+- 不同 Agent 只拿自己当前阶段真正需要的那部分上下文
+
+这样做的目的，是减少上下文噪声与 token 浪费，让模型把注意力集中在“当前这一步真正需要解决的问题”上。
+
+</div>
+
+<div>
+  <img src="/figures/progressive-disclosure.svg" alt="progressive disclosure for context loading" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
+</div>
+
+</div>
+
+---
+
+# 工程亮点
+
+<div class="page-kicker">Engineering</div>
+
+<div class="grid grid-cols-2 gap-4 mt-4 text-sm leading-relaxed">
+
+<div class="section-card p-5">
+
+**稳定性与可观测性**
+
+- 结构化输出降低解析不确定性
+- 状态化工作流保证阶段顺序
+- 进度回调与 Trace 便于展示和调试
+- 质量门控避免异常结果直接进入系统
+
+</div>
+
+<div class="section-card p-5">
+
+**可运行性的工程补充**
+
+- 并行生成角色人设与立绘
+- 异步预取下一场景
+- 背景缓存与去重
+- `fallback scene` 兜底
+- 存档、读档与 backlog 支持
 
 </div>
 
@@ -74,7 +474,7 @@ layout: cover
 - 草稿生成模型：`google/gemini-3-flash-preview`
 - 接入方式：通过 `OpenRouter` 统一调度
 
-在实际流程中，主文本模型主要承担规划、评审与最终整合任务；草稿模型负责中间候选内容生成，以平衡生成质量、速度与调用成本。
+主文本模型负责规划、评审与整合；草稿模型负责候选内容生成，以平衡质量、速度与成本。
 
 </div>
 
@@ -84,17 +484,9 @@ layout: cover
 
 - 常规图像模型：`google/gemini-3.1-flash-image-preview`
 - CG / 宣传图模型：`google/gemini-3-pro-image-preview`
-- 按不同任务类型进行资源分配
+- 按任务类型分配不同模型资源
 
-其中，常规图像生成主要服务于背景与流程内画面，高质量图像模型则用于 CG 或展示型画面，以提升汇报与演示效果。
-
-</div>
-
-<div class="accent-note p-4 col-span-2 text-sm leading-relaxed">
-
-**设计说明**
-
-在同一轮生成任务中，规划、草稿、审核与出图所要求的能力并不相同。因此，本项目并未采用单模型包揽全部任务的方式，而是按子任务分配模型能力，从而提高整体稳定性与效率。
+常规模型服务流程内背景与画面，高质量模型用于 CG 和展示型图像。
 
 </div>
 
@@ -102,263 +494,17 @@ layout: cover
 
 ---
 
-# 为什么采用多 Agent
-
-<div class="page-kicker">Motivation</div>
-
-如果仅依赖单模型一次性完成场景生成，通常会出现以下问题：
-
-- 规划与写作耦合，导致内容容易偏离当前剧情目标
-- 难以同时兼顾角色一致性、分支设计与连续性约束
-- 输出质量波动时，缺少显式检查与纠错机制
-
-基于上述问题，我们将内容生成流程拆分为多个阶段，由不同 Agent 分别承担规划、生成、检查与收敛任务。这样做的核心目的，是将“内容生产”与“质量控制”分离，从而提高复杂叙事任务的可控性。
-
----
-
-# 多 Agent 协同设计
-
-<div class="page-kicker">Architecture</div>
-
-<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
-
-<div>
-
-我们将场景生成过程抽象为四类 Agent：
-
-- `Planner`：负责剧情目标、节拍安排与连续性约束
-- `Writer`：负责生成场景草稿、对话与候选选项
-- `Critic`：负责质量检查、逻辑核对与问题识别
-- `Reviewer`：负责整合修改意见并输出最终结果
-
-**核心流程**：规划 → 生成 → 检查 → 交付
-
-这一流程的意义在于，使系统能够在每一轮生成中形成“先规划、后写作、再校验”的稳定链路，而不是依赖单次调用直接获得最终答案。
-
-</div>
-
-<div>
-  <img src="/figures/agent-workflow.svg" alt="multi-agent workflow" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
-</div>
-
-</div>
-
----
-
-# 稳定性机制
-
-<div class="page-kicker">Stability</div>
-
-<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
-
-<div>
-
-项目虽然没有直接依赖 `LangChain`，但在设计上参考了同类框架的若干核心思想：
-
-- 结构化输出：降低解析不确定性
-- 状态化工作流：保证流程具有阶段性与顺序性
-- 进度回调：便于前端展示生成进度
-- 运行 Trace：便于开发、调试与演示说明
-- 质量门控：在输出进入系统前进行校验
-
-这些机制的重点不在于复刻某一框架，而在于提升多阶段生成流程的稳定性、可观测性与可控性，使系统更适合工程化实现与课堂答辩展示。
-
-</div>
-
-<div>
-  <img src="/figures/langchain-mechanisms.svg" alt="workflow mechanisms" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
-</div>
-
-</div>
-
----
-
-# 共享状态与记忆
-
-<div class="page-kicker">Shared Context</div>
-
-<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
-
-<div>
-
-多阶段生成要实现稳定运行，核心在于共享上下文状态，而不是让每一轮生成都从零开始。
-
-系统在运行中持续维护以下信息：
-
-- 角色档案与人物设定
-- 当前路线阶段与好感度状态
-- 历史摘要与关键记忆片段
-- 连续性备注与尚未回收的伏笔
-
-这些信息会在各阶段之间持续传递，从而使后续生成能够继承前文语境，维持叙事连贯性与状态一致性。
-
-</div>
-
-<div>
-  <img src="/figures/shared-memory.svg" alt="shared memory blackboard" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
-</div>
-
-</div>
-
----
-
-# 结构化协议
-
-<div class="page-kicker">Structured Protocol</div>
-
-<div class="grid grid-cols-[0.92fr_1.08fr] gap-6 items-center text-sm leading-relaxed mt-3">
-
-<div>
-
-为了避免使用自由文本直接驱动程序，我们定义了结构化协议 `SceneData`，用于统一描述场景生成结果。
-
-核心字段包括：
-
-- `script`
-- `stage_commands`
-- `choices`
-- `background`
-- `game_state_update`
-- `continuity_notes` 等
-
-该协议一方面保证程序能够稳定解析模型输出，另一方面为 UI 渲染、状态更新与后续场景续写提供统一的数据接口，是连接生成模块与游戏逻辑的重要中间层。
-
-</div>
-
-<div>
-  <img src="/figures/scene-protocol.svg" alt="structured scene protocol" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
-</div>
-
-</div>
-
----
-
-# 多模态协同
-
-<div class="page-kicker">Multimodal Loop</div>
-
-<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
-
-<div>
-
-本系统并非只生成文本，而是同时协调文本、图像与交互三类模块：
-
-- 文本模块负责生成剧情目标、对话与视觉描述
-- 图像模块负责生成立绘、背景与 CG 画面
-- UI 层依据结构化结果完成呈现与交互
-- 玩家选择再进一步反馈至状态机
-
-因此，系统形成的是一个持续迭代的多模态闭环，而非一次性生成。玩家的选择会影响状态机，而状态机又会进一步影响后续文本与图像内容的生成方向。
-
-</div>
-
-<div>
-  <img src="/figures/multimodal-loop.svg" alt="multimodal generation loop" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
-</div>
-
-</div>
-
----
-
-# 渐进式披露
-
-<div class="page-kicker">Presentation Layer</div>
-
-<div class="grid grid-cols-[0.96fr_1.04fr] gap-6 items-center text-sm leading-relaxed mt-3">
-
-<div>
-
-由于系统内部包含较多生成状态、诊断信息与中间过程，我们在展示层采用了渐进式披露策略：
-
-- 默认界面仅展示剧情、角色与选项等核心信息
-- 在生成过程中展示必要的进度反馈
-- 将 Trace、记忆与诊断信息设计为按需展开
-
-该设计既保证了玩家界面的简洁性，也便于在开发、调试和答辩演示过程中逐步解释系统内部流程，避免一次性暴露过多技术细节而影响展示效果。
-
-</div>
-
-<div>
-  <img src="/figures/progressive-disclosure.svg" alt="progressive disclosure UI" class="w-full max-h-[18rem] object-contain rounded-2xl border border-gray-200 shadow-sm bg-white/70" />
-</div>
-
-</div>
-
----
-
-# 工程实现
-
-<div class="page-kicker">Engineering</div>
-
-为了让整套流程具备可运行性，我们补充了以下工程机制：
-
-- 并行生成多位角色人设与立绘
-- 异步预取下一场景
-- 背景缓存与去重
-- `fallback scene` 兜底
-- 存档、读档与 backlog 支持
-
-这些机制的意义在于，将模型调用从单次实验扩展为连续可运行的应用流程。因此，本项目并非停留在 Prompt 设计层面，而是实现了一个可实际运行的互动叙事原型系统。
-
----
-
-# Demo：运行截图
-
-<div class="page-kicker">Demo</div>
-
-<div class="grid grid-cols-2 gap-4 mt-3">
-
-<div class="section-card p-4">
-
-**单角色场景**
-
-<img src="/screenshots/1.png" alt="单角色场景" class="w-full max-h-[15rem] object-contain rounded-lg shadow mt-3" />
-
-<div class="text-xs leading-snug mt-3">
-
-- 展示 AI 内容进入真实游戏界面后的效果
-- 背景、立绘、对话与状态能够联动
-- 玩家选择会影响下一幕场景的生成
-
-该截图说明，生成结果并不是独立文本，而是能够被界面系统直接消费并参与游戏运行。
-
-</div>
-
-</div>
-
-<div class="section-card p-4">
-
-**多角色舞台调度**
-
-<img src="/screenshots/image.png" alt="多角色舞台" class="w-full max-h-[15rem] object-contain rounded-lg shadow mt-3" />
-
-<div class="text-xs leading-snug mt-3">
-
-- 输出结果不仅包含文本，也包含舞台调度信息
-- 程序依据 `stage_commands` 控制角色站位与出入场
-- 同一结构化协议同时服务叙事生成与界面渲染
-
-这说明结构化协议不仅服务于文本表达，也直接参与了视觉呈现与交互控制。
-
-</div>
-
-</div>
-
-</div>
-
----
-
-# 项目意义
+# 项目价值
 
 <div class="page-kicker">Significance</div>
 
-本项目的意义主要体现在以下三个层面：
+本项目说明了三件事：
 
-- **应用层面**：AIGC 不仅可以用于静态内容生成，也能够进入交互式系统并参与真实应用流程
-- **方法层面**：多 Agent 协同更适合处理持续、受约束、带状态的复杂生成任务
-- **工程层面**：结构化协议、状态管理与兜底机制对于系统能否稳定运行同样关键
+- **AIGC 可以进入真实互动系统**：不是只生成静态内容，而是能参与可运行应用流程
+- **多 Agent 更适合复杂叙事任务**：尤其适用于持续、多约束、带状态的生成场景
+- **工程机制与模型能力同样重要**：结构化协议、状态管理和兜底设计决定系统是否可用
 
-换言之，本项目希望说明，互动叙事场景中的 AIGC 研究，不应只关注“模型生成了什么”，还需要关注“生成结果如何被系统稳定使用”。
+因此，我们关注的不只是“模型生成了什么”，更是“生成结果能否被系统稳定使用”。
 
 ---
 
@@ -380,8 +526,6 @@ layout: cover
 - 建立自动评测与质量分析方案
 - 强化文本与图像之间的一致性约束
 
-总体而言，当前系统已经验证了方案的可行性，但在长期叙事稳定性、风格统一性与自动评测方面仍有进一步完善空间。
-
 ---
 
 # 总结
@@ -392,13 +536,7 @@ layout: cover
 
 > 对互动叙事任务而言，多 Agent 协同比单次生成更适合处理持续、多约束、带状态的内容生成问题。
 
-对于互动叙事系统来说，关键并不只是模型生成得是否足够“华丽”，而在于：
-
-- 输出能否被程序稳定消费
-- 系统能否在多轮生成下持续运行
-- 玩家选择能否真正影响后续内容
-
-因此，我们认为，互动叙事系统的重点不仅是生成能力本身，更在于如何把生成结果组织为一个可执行、可维护、可扩展的完整流程。
+我们希望说明，互动叙事系统的重点不仅是生成能力本身，更在于如何把生成结果组织为一个可执行、可维护、可扩展的完整流程。
 
 ---
 layout: center

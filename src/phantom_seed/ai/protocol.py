@@ -62,8 +62,8 @@ class GameStateUpdate(BaseModel):
 class ScenePlan(BaseModel):
     """High-level narrative plan used before drafting a scene."""
 
-    scene_purpose: str
-    opening_situation: str
+    scene_purpose: str = ""
+    opening_situation: str = ""
     emotional_beats: list[str] = Field(default_factory=list)
     continuity_must_use: list[str] = Field(default_factory=list)
     location_sequence: list[str] = Field(default_factory=list)
@@ -78,10 +78,70 @@ class ScenePlan(BaseModel):
         if not isinstance(data, dict):
             return data
         normalized = dict(data)
+        if isinstance(normalized.get("scene_purpose"), dict):
+            scene_purpose = normalized["scene_purpose"]
+            normalized["scene_purpose"] = " | ".join(
+                str(scene_purpose.get(key, "")).strip()
+                for key in ("goal", "summary", "purpose")
+                if str(scene_purpose.get(key, "")).strip()
+            )
         if not normalized.get("scene_purpose"):
             alt = normalized.get("scene_goal") or normalized.get("goal")
             if alt:
                 normalized["scene_purpose"] = alt
+        if not normalized.get("opening_situation"):
+            alt_opening = (
+                normalized.get("opening")
+                or normalized.get("opening_state")
+                or normalized.get("scene_opening")
+                or normalized.get("initial_situation")
+                or normalized.get("setup")
+                or normalized.get("scene_setup")
+            )
+            if alt_opening:
+                normalized["opening_situation"] = alt_opening
+        elif isinstance(normalized.get("opening_situation"), dict):
+            opening = normalized["opening_situation"]
+            summary_parts = [
+                str(opening.get(key, "")).strip()
+                for key in ("location", "situation", "summary", "goal")
+                if str(opening.get(key, "")).strip()
+            ]
+            if summary_parts:
+                normalized["opening_situation"] = " | ".join(summary_parts)
+        raw_locations = normalized.get("location_sequence")
+        if isinstance(raw_locations, list):
+            rewritten_locations: list[str] = []
+            for item in raw_locations:
+                if isinstance(item, str):
+                    rewritten_locations.append(item)
+                    continue
+                if isinstance(item, dict):
+                    summary_parts = [
+                        str(item.get(key, "")).strip()
+                        for key in ("location", "purpose", "summary", "event")
+                        if str(item.get(key, "")).strip()
+                    ]
+                    rewritten_locations.append(
+                        " | ".join(summary_parts) if summary_parts else str(item)
+                    )
+                    continue
+                rewritten_locations.append(str(item))
+            normalized["location_sequence"] = rewritten_locations
+        if not normalized.get("opening_situation"):
+            raw_locations = normalized.get("location_sequence")
+            if isinstance(raw_locations, list):
+                for item in raw_locations:
+                    text = str(item).strip()
+                    if text:
+                        normalized["opening_situation"] = text
+                        break
+        if not normalized.get("scene_purpose"):
+            for key in ("payoff_target", "conflict_turn", "ending_hook"):
+                text = str(normalized.get(key, "")).strip()
+                if text:
+                    normalized["scene_purpose"] = text
+                    break
         raw_choice_design = normalized.get("choice_design")
         if isinstance(raw_choice_design, list):
             rewritten: list[str] = []
@@ -104,6 +164,29 @@ class ScenePlan(BaseModel):
                 rewritten.append(str(item))
             normalized["choice_design"] = rewritten
         return normalized
+
+
+class SceneScriptDraft(BaseModel):
+    """Script-first scene draft before metadata/choices are filled in."""
+
+    scene_id: str
+    script: list[DialogueLine] = Field(default_factory=list)
+    stage_commands: list[StageCommand] = Field(default_factory=list)
+    scene_goal: str = ""
+
+
+class SceneMetadataDraft(BaseModel):
+    """Metadata and branching data generated after the script draft is available."""
+
+    background: str = ""
+    visual_type: VisualType = VisualType.SPRITE_SCENE
+    climax_cg_prompt: str = ""
+    choices: list[Choice] = Field(default_factory=list)
+    game_state_update: GameStateUpdate = Field(default_factory=GameStateUpdate)
+    emotional_shift: str = ""
+    continuity_notes: list[str] = Field(default_factory=list)
+    open_threads: list[str] = Field(default_factory=list)
+    next_hook: str = ""
 
 
 class SceneCritique(BaseModel):

@@ -61,6 +61,15 @@ class Config:
             "x-ai/grok-4.1-fast",
         )
     )
+    structured_text_model: str = field(
+        default_factory=lambda: os.environ.get(
+            "OPENROUTER_STRUCTURED_TEXT_MODEL",
+            os.environ.get(
+                "OPENROUTER_TEXT_MODEL",
+                "x-ai/grok-4.20",
+            ),
+        )
+    )
     draft_text_model: str = field(
         default_factory=lambda: os.environ.get(
             "OPENROUTER_DRAFT_TEXT_MODEL",

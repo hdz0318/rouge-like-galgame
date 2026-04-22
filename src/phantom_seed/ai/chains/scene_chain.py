@@ -9,16 +9,19 @@ from typing import TYPE_CHECKING, Callable
 from phantom_seed.ai.llm import OpenRouterClient
 from phantom_seed.ai.prompts.scene import (
     build_scene_critique_messages,
+    build_scene_metadata_messages,
     build_scene_plan_messages,
     build_scene_review_messages,
-    build_scene_write_messages,
+    build_scene_script_messages,
 )
 from phantom_seed.ai.protocol import (
     AgentStageTrace,
     CharacterProfile,
     SceneCritique,
     SceneData,
+    SceneMetadataDraft,
     ScenePlan,
+    SceneScriptDraft,
 )
 
 if TYPE_CHECKING:
@@ -32,10 +35,10 @@ class SceneChain:
 
     def __init__(self, config: Config, client: OpenRouterClient | None = None) -> None:
         self._client = client or OpenRouterClient(config.openrouter_api_key)
-        self._planner_model = config.text_model
+        self._planner_model = config.structured_text_model
         self._writer_model = config.draft_text_model
-        self._reviewer_model = config.text_model
-        self._critic_model = config.text_model
+        self._reviewer_model = config.structured_text_model
+        self._critic_model = config.structured_text_model
         self._max_revision_rounds = max(1, config.scene_max_revision_rounds)
         self._quality_threshold = max(0, min(100, config.scene_quality_threshold))
         self._last_trace: list[AgentStageTrace] = []
@@ -48,7 +51,10 @@ class SceneChain:
     def _format_progress(stage: str, event: dict[str, object]) -> str:
         stage_label = {
             "plan": "剧情规划",
+            "draft_script": "正文草拟",
+            "draft_metadata": "补全元数据",
             "draft": "正文草拟",
+            "critique": "质量评估",
             "review": "剧情审校",
         }.get(stage, stage)
         kind = str(event.get("type", ""))
@@ -158,6 +164,29 @@ class SceneChain:
                 deduped.append(note)
         return "\n".join(f"- {note}" for note in deduped[:8])
 
+    @staticmethod
+    def _merge_scene_draft(
+        script_draft: SceneScriptDraft,
+        metadata_draft: SceneMetadataDraft,
+    ) -> SceneData:
+        return SceneData.model_validate(
+            {
+                "scene_id": script_draft.scene_id,
+                "script": [line.model_dump() for line in script_draft.script],
+                "stage_commands": [cmd.model_dump() for cmd in script_draft.stage_commands],
+                "scene_goal": script_draft.scene_goal,
+                "background": metadata_draft.background,
+                "visual_type": metadata_draft.visual_type,
+                "climax_cg_prompt": metadata_draft.climax_cg_prompt,
+                "choices": [choice.model_dump() for choice in metadata_draft.choices],
+                "game_state_update": metadata_draft.game_state_update.model_dump(),
+                "emotional_shift": metadata_draft.emotional_shift,
+                "continuity_notes": metadata_draft.continuity_notes,
+                "open_threads": metadata_draft.open_threads,
+                "next_hook": metadata_draft.next_hook,
+            }
+        )
+
     def invoke(
         self,
         character_profile: CharacterProfile,
@@ -214,16 +243,35 @@ class SceneChain:
                 "scene_plan": plan_json,
                 "revision_brief": self._revision_brief(critique, local_issues),
             }
-            draft = self._run_structured_stage(
-                stage_name="draft",
+            script_draft = self._run_structured_stage(
+                stage_name="draft_script",
                 model=self._writer_model,
-                messages=build_scene_write_messages(**draft_payload),
-                schema_model=SceneData,
+                messages=build_scene_script_messages(**draft_payload),
+                schema_model=SceneScriptDraft,
                 temperature=0.9 if attempt == 1 else 0.72,
-                max_tokens=8192,
+                max_tokens=6144,
                 attempt=attempt,
                 progress_cb=progress_cb,
             )
+            metadata_payload = {
+                **draft_payload,
+                "scene_script": json.dumps(
+                    script_draft.model_dump(),
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+            }
+            metadata_draft = self._run_structured_stage(
+                stage_name="draft_metadata",
+                model=self._writer_model,
+                messages=build_scene_metadata_messages(**metadata_payload),
+                schema_model=SceneMetadataDraft,
+                temperature=0.55,
+                max_tokens=3072,
+                attempt=attempt,
+                progress_cb=progress_cb,
+            )
+            draft = self._merge_scene_draft(script_draft, metadata_draft)
             critique_payload = {
                 **payload,
                 "scene_plan": plan_json,

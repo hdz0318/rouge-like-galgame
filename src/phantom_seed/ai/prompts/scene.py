@@ -50,7 +50,7 @@ SCENE_PLAN_PROMPT_TEMPLATE = """\
 
 请严格按 ScenePlan 的 JSON 输出，不要附加解释。"""
 
-SCENE_WRITE_PROMPT_TEMPLATE = """\
+SCENE_SCRIPT_PROMPT_TEMPLATE = """\
 ## 当前角色档案
 {character_profile}
 
@@ -89,7 +89,7 @@ SCENE_WRITE_PROMPT_TEMPLATE = """\
 ## 上一轮审查反馈
 {revision_brief}
 
-## 本次剧情生成要求
+## 本次脚本生成要求
 - 必须输出 **25-45 条对话**（严格执行，少于20条视为失败）
 - 必须包含至少 **2次场景/地点切换**（使用 scene_transition 字段）
 - **以对话为核心**：减少神态/动作/心理描写，台词本身要体现情绪和性格
@@ -104,16 +104,66 @@ SCENE_WRITE_PROMPT_TEMPLATE = """\
 - 若路线阶段是 `climax` 或 `ending`，必须朝 {ending_target} 这种结局质感推进
 - 基调是温馨浪漫的成人恋爱故事，允许有小冲突和误会，但整体基调积极向上
 - 【强制约束】所有角色均为 18 岁以上大学生或成年人，不得出现任何涉及未成年人的浪漫或亲密内容
-- `background` / `scene_transition` / `climax_cg_prompt` 的英文内容必须明显偏向 Japanese anime galgame aesthetics，不要使用 photo, realistic, cinematic live-action, 3D render 之类的导向
-- 在最后提供 **2-3 个选择分支**，选项要对剧情走向有实质影响
-- 除正常 SceneData 字段外，还要认真填写：
-  - scene_goal：本幕完成了什么推进
-  - emotional_shift：本幕情绪如何变化
-  - continuity_notes：后续必须记住的事实，写 2-4 条
-  - open_threads：本幕留下的未解决问题或伏笔，写 1-3 条
-  - next_hook：下一幕最该承接的钩子
+- 这一阶段只负责完整剧本骨架，不要填写背景、choices、continuity_notes、open_threads、next_hook 等包装字段
+- 必须认真填写 `scene_goal`
 
-请生成下一段剧情场景，严格按 JSON 格式输出。"""
+请生成下一段剧情脚本骨架，严格按 SceneScriptDraft 的 JSON 格式输出。"""
+
+SCENE_METADATA_PROMPT_TEMPLATE = """\
+## 当前角色档案
+{character_profile}
+
+## 女主阵容摘要
+{cast_summary}
+
+## 当前游戏状态
+- 当前焦点女主: {active_heroine}
+- 好感度 (Affection): {affection}/100
+- 当前场景编号: 第 {round_number} 幕
+- 章节节拍: {chapter_beat}
+- 路线阶段: {route_phase}
+- 锁定线路: {route_locked_to}
+
+## 路线蓝图
+{route_blueprint}
+
+## 当前目标结局
+{ending_target}
+
+## 故事历史摘要
+{history_summary}
+
+## 剧情记忆
+{story_memory}
+
+## 上一次玩家的选择
+{last_choice}
+
+## 随机小插曲（可以融入剧情，也可以忽略）
+{random_event}
+
+## 本幕剧情规划
+{scene_plan}
+
+## 已完成的剧本骨架
+{scene_script}
+
+## 上一轮审查反馈
+{revision_brief}
+
+## 本次元数据生成要求
+- 这一阶段只补齐：background、visual_type、climax_cg_prompt、choices、game_state_update、emotional_shift、continuity_notes、open_threads、next_hook
+- `background` / `climax_cg_prompt` 的英文内容必须明显偏向 Japanese anime galgame aesthetics，不要使用 photo, realistic, cinematic live-action, 3D render 之类的导向
+- 在最后提供 **2-3 个选择分支**，选项要对剧情走向有实质影响
+- choices 需要具备“选线感”，在共通线阶段可通过 `heroine:角色名` 和 `affection` 体现偏向；锁线后则以锁定女主的情感推进为主
+- 若路线阶段是 `lock_window`，2-3 个 choices 至少要有 2 个明确偏向不同女主
+- 若路线阶段是 `climax` 或 `ending`，必须朝 {ending_target} 这种结局质感推进
+- continuity_notes：后续必须记住的事实，写 2-4 条
+- open_threads：本幕留下的未解决问题或伏笔，写 1-3 条
+- next_hook：下一幕最该承接的钩子
+- 不要重写 script 和 scene_goal；所有判断都必须建立在已有剧本骨架上
+
+请严格按 SceneMetadataDraft 的 JSON 输出，不要附加解释。"""
 
 SCENE_CRITIQUE_PROMPT_TEMPLATE = """\
 你现在扮演剧情质量控制 agent。你的任务不是改稿，而是判断下面这版 SceneData 草稿是否达到了可进入最终审校的质量门槛。
@@ -218,10 +268,17 @@ def build_scene_plan_messages(**payload: str) -> list[dict[str, str]]:
     ]
 
 
-def build_scene_write_messages(**payload: str) -> list[dict[str, str]]:
+def build_scene_script_messages(**payload: str) -> list[dict[str, str]]:
     return [
         {"role": "system", "content": SYSTEM_MESSAGE},
-        {"role": "user", "content": SCENE_WRITE_PROMPT_TEMPLATE.format(**payload)},
+        {"role": "user", "content": SCENE_SCRIPT_PROMPT_TEMPLATE.format(**payload)},
+    ]
+
+
+def build_scene_metadata_messages(**payload: str) -> list[dict[str, str]]:
+    return [
+        {"role": "system", "content": SYSTEM_MESSAGE},
+        {"role": "user", "content": SCENE_METADATA_PROMPT_TEMPLATE.format(**payload)},
     ]
 
 

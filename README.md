@@ -54,6 +54,7 @@ uv sync --extra dev
 ```env
 OPENROUTER_API_KEY=your_key_here
 OPENROUTER_TEXT_MODEL=x-ai/grok-4.1-fast
+OPENROUTER_STRUCTURED_TEXT_MODEL=x-ai/grok-4.1
 OPENROUTER_DRAFT_TEXT_MODEL=google/gemini-3-flash-preview
 OPENROUTER_IMAGE_MODEL=google/gemini-3.1-flash-image-preview
 OPENROUTER_PROMO_IMAGE_MODEL=google/gemini-3-pro-image-preview
@@ -97,6 +98,7 @@ uv run python -m phantom_seed.main
 - 标题：`Phantom Seed`
 - 文本速度、自动播放间隔、全屏设置
 - OpenRouter 文本模型与图像模型配置
+- 结构化场景阶段可单独指定更强文本模型
 - 图像缓存目录：`.cache/images`
 - 存档目录：`.saves`
 
