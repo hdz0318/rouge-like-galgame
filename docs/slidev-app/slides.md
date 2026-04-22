@@ -55,14 +55,6 @@ layout: cover
 
 </div>
 
-<div class="accent-note p-4 mt-5 text-sm leading-relaxed">
-
-**一句话概括**
-
-我们做的不是“生成内容演示”，而是一个能够把 AIGC 内容真正接入互动叙事流程的可运行原型。
-
-</div>
-
 ---
 
 # Demo：运行效果
