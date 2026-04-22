@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
-import json
+import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from phantom_seed.utils.io import read_json_file, write_json_file
+
+log = logging.getLogger(__name__)
 
 
 def _load_dotenv() -> None:
@@ -82,6 +86,8 @@ class Config:
     # Generation
     prefetch_count: int = 1
     generation_timeout: float = 30.0
+    scene_max_revision_rounds: int = 2
+    scene_quality_threshold: int = 78
 
     # Settings (user-configurable, persisted to settings.json)
     text_speed_ms: int = 30
@@ -105,16 +111,14 @@ class Config:
             "auto_play_ms": self.auto_play_ms,
             "fullscreen": self.fullscreen,
         }
-        self._settings_path.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        write_json_file(self._settings_path, data)
 
     def load_settings(self) -> None:
         """Load user settings from settings.json if it exists."""
         if not self._settings_path.exists():
             return
         try:
-            data = json.loads(self._settings_path.read_text(encoding="utf-8"))
+            data = read_json_file(self._settings_path)
             if "text_speed_ms" in data:
                 self.text_speed_ms = int(data["text_speed_ms"])
             if "auto_play_ms" in data:
@@ -122,4 +126,4 @@ class Config:
             if "fullscreen" in data:
                 self.fullscreen = bool(data["fullscreen"])
         except Exception:
-            pass  # ignore corrupt settings
+            log.warning("Failed to load settings from %s", self._settings_path, exc_info=True)

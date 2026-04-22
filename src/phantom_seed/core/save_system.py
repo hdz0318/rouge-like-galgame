@@ -16,10 +16,12 @@ import base64
 import io
 import json
 import logging
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+from phantom_seed.utils.io import read_json_file, write_text_file
 
 if TYPE_CHECKING:
     import pygame
@@ -98,6 +100,7 @@ class SaveData:
         d.setdefault("latest_hook", "")
         d.setdefault("heroines_data", [])
         d.setdefault("heroine_sprite_paths", {})
+        d.setdefault("bg_cache", {})
         return SaveData(**d)
 
 
@@ -107,9 +110,13 @@ class SaveSystem:
     def __init__(self, project_root: Path) -> None:
         self.save_dir = project_root / ".saves"
         self.save_dir.mkdir(parents=True, exist_ok=True)
+        self._slot_info_cache: dict[str, tuple[int, dict[str, str]]] = {}
 
     def _slot_path(self, slot: str) -> Path:
         return self.save_dir / f"slot_{slot}.json"
+
+    def _invalidate_slot_info(self, slot: str) -> None:
+        self._slot_info_cache.pop(slot, None)
 
     # ── Save ────────────────────────────────────────────────────
 
@@ -122,8 +129,6 @@ class SaveSystem:
         screenshot: pygame.Surface | None = None,
     ) -> None:
         """Serialise the full game state to a slot file."""
-        from phantom_seed.ai.protocol import SceneData
-
         st = coordinator.state
         char = coordinator.character
 
@@ -177,7 +182,8 @@ class SaveSystem:
         )
 
         path = self._slot_path(slot)
-        path.write_text(save.to_json(), encoding="utf-8")
+        write_text_file(path, save.to_json())
+        self._invalidate_slot_info(slot)
         log.info("Saved to slot %s: %s", slot, path)
 
     # ── Load ────────────────────────────────────────────────────
@@ -198,10 +204,17 @@ class SaveSystem:
         """Return lightweight info dict for displaying in the menu."""
         path = self._slot_path(slot)
         if not path.exists():
+            self._invalidate_slot_info(slot)
             return None
         try:
-            d = json.loads(path.read_text(encoding="utf-8"))
-            return {
+            stat = path.stat()
+            cache_key = stat.st_mtime_ns
+            cached = self._slot_info_cache.get(slot)
+            if cached and cached[0] == cache_key:
+                return dict(cached[1])
+
+            d = read_json_file(path)
+            info = {
                 "slot": slot,
                 "timestamp": d.get("timestamp", ""),
                 "round": str(d.get("round_number", 0)),
@@ -209,13 +222,15 @@ class SaveSystem:
                 "char": d.get("character_data", {}).get("name", "???"),
                 "thumbnail_b64": d.get("thumbnail_b64") or "",
             }
+            self._slot_info_cache[slot] = (cache_key, info)
+            return dict(info)
         except Exception:
+            self._invalidate_slot_info(slot)
             return None
 
     def restore_coordinator(self, data: SaveData, coordinator: GameCoordinator) -> None:
         """Push all fields from SaveData back into a GameCoordinator."""
         from phantom_seed.ai.protocol import CharacterProfile, SceneData
-        from phantom_seed.core.state import GameState
 
         # Restore state
         coordinator.seed_hash = data.seed_hash

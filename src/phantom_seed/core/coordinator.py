@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Callable
 from phantom_seed.ai.chains import CharacterChain, SceneChain
 from phantom_seed.ai.imagen_client import ImagenClient
 from phantom_seed.ai.protocol import (
+    AgentStageTrace,
     FALLBACK_SCENE,
     CharacterProfile,
     Choice,
@@ -54,9 +55,11 @@ class GameCoordinator:
         self.atmosphere: str = ""
         self.current_scene: SceneData | None = None
         self.character_sprite_path: Path | None = None
+        self.latest_scene_agent_trace: list[AgentStageTrace] = []
         # Background description → generated image path (reuse across scenes)
         self._bg_cache: dict[str, str] = {}
         self._bg_lock = threading.Lock()
+        self._bg_inflight: dict[str, threading.Event] = {}
 
     def _heroine_variants(self, seed_string: str) -> list[tuple[str, str]]:
         variants: list[tuple[str, str]] = []
@@ -261,11 +264,6 @@ class GameCoordinator:
             for cmd in scene.stage_commands
             if cmd.action in (StageAction.ENTER, StageAction.MOVE)
         }
-        staged_chars = {
-            cmd.character
-            for cmd in scene.stage_commands
-            if cmd.character
-        }
         normalized_cmds: list[StageCommand] = []
         touched: set[str] = set()
 
@@ -343,10 +341,22 @@ class GameCoordinator:
     ) -> str | None:
         """Return cached bg path or generate a new one. Thread-safe."""
         key = self._bg_key(desc)
+        wait_event: threading.Event | None = None
+        is_owner = False
         with self._bg_lock:
             if key in self._bg_cache:
                 log.debug("BG cache hit for: %s", key[:40])
                 return self._bg_cache[key]
+            wait_event = self._bg_inflight.get(key)
+            if wait_event is None:
+                wait_event = threading.Event()
+                self._bg_inflight[key] = wait_event
+                is_owner = True
+        if not is_owner:
+            assert wait_event is not None
+            wait_event.wait(timeout=self.config.generation_timeout)
+            with self._bg_lock:
+                return self._bg_cache.get(key)
         # Generate outside the lock so we don't block other threads
         try:
             if is_cg:
@@ -362,6 +372,11 @@ class GameCoordinator:
                 return str(path)
         except Exception:
             log.exception("Background generation failed for: %s", desc[:60])
+        finally:
+            with self._bg_lock:
+                event = self._bg_inflight.pop(key, None)
+                if event is not None:
+                    event.set()
         return None
 
     def _generate_transition_bgs_async(self, scene: SceneData) -> None:
@@ -414,6 +429,10 @@ class GameCoordinator:
         self._emit_progress(progress_cb, 1, 5, "解析种子")
         self.seed_hash = hash_seed(seed_string)
         self.atmosphere = derive_initial_atmosphere(self.seed_hash)
+        self.latest_scene_agent_trace = []
+        with self._bg_lock:
+            self._bg_cache.clear()
+            self._bg_inflight.clear()
 
         # Generate heroine roster
         self._emit_progress(progress_cb, 2, 5, "生成女主阵容")
@@ -521,9 +540,11 @@ class GameCoordinator:
                     message,
                 ),
             )
+            self.latest_scene_agent_trace = self.scene_chain.last_trace
             scene = self._postprocess_scene(scene)
         except Exception:
             log.exception("Scene generation failed, using fallback")
+            self.latest_scene_agent_trace = []
             scene = FALLBACK_SCENE
 
         if scene.game_state_update.is_ending:
@@ -534,7 +555,9 @@ class GameCoordinator:
         self.state.remember_scene(scene)
         if scene.script:
             speakers = set(
-                l.speaker for l in scene.script if l.speaker not in ("旁白", "系统")
+                line.speaker
+                for line in scene.script
+                if line.speaker not in ("旁白", "系统")
             )
             opening = scene.script[0].text[:28]
             goal = scene.scene_goal[:24] if scene.scene_goal else "关系推进"

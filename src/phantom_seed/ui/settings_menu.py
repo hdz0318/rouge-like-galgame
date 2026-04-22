@@ -156,9 +156,9 @@ class SettingsOverlay:
         self._option_rects = []
 
         settings = [
-            ("文字速度", [l for l, _ in self.TEXT_SPEED_OPTIONS]),
-            ("自动播放", [l for l, _ in self.AUTO_PLAY_OPTIONS]),
-            ("显示模式", [l for l, _ in self.FULLSCREEN_OPTIONS]),
+            ("文字速度", [label for label, _ in self.TEXT_SPEED_OPTIONS]),
+            ("自动播放", [label for label, _ in self.AUTO_PLAY_OPTIONS]),
+            ("显示模式", [label for label, _ in self.FULLSCREEN_OPTIONS]),
         ]
 
         start_y = py + 70

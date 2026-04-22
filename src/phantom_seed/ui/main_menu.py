@@ -49,7 +49,6 @@ class MainMenu:
     def _build_rects(self) -> None:
         btn_w, btn_h = 280, 48
         spacing = 14
-        total_h = len(self.BUTTONS) * btn_h + (len(self.BUTTONS) - 1) * spacing
         start_y = self.sh // 2 + 20
         start_x = (self.sw - btn_w) // 2
         self._rects = [

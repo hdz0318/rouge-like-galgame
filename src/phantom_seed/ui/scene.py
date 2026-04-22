@@ -26,7 +26,13 @@ class CharacterSprite:
         self.alpha = 255
         self.visible = False
         self.surface: pygame.Surface | None = None
+        self._dimmed_surface: pygame.Surface | None = None
+        self._highlight_surface: pygame.Surface | None = None
         self.shake_timer = 0
+
+    def _invalidate_variants(self) -> None:
+        self._dimmed_surface = None
+        self._highlight_surface = None
 
     def load(self, screen_h: int) -> None:
         if self.surface is not None:
@@ -44,6 +50,7 @@ class CharacterSprite:
                     else int(target_h * 0.55)
                 )
                 self.surface = pygame.transform.smoothscale(orig, (target_w, target_h))
+                self._invalidate_variants()
         if self.surface is None:
             # Unique silhouette color per character based on their ID hash
             h_val = int(hashlib.md5(self.char_id.encode()).hexdigest()[:6], 16)
@@ -51,6 +58,27 @@ class CharacterSprite:
             g = 15 + (h_val >> 8 & 0xFF) % 50
             b = 50 + (h_val & 0xFF) % 100
             self.surface = create_placeholder(360, int(screen_h * 0.92), (r, g, b))
+            self._invalidate_variants()
+
+    def _dimmed_variant(self) -> pygame.Surface:
+        if self._dimmed_surface is None:
+            assert self.surface is not None
+            self._dimmed_surface = self.surface.copy()
+            self._dimmed_surface.fill(
+                (120, 120, 120, 255),
+                special_flags=pygame.BLEND_RGBA_MULT,
+            )
+        return self._dimmed_surface
+
+    def _highlight_variant(self) -> pygame.Surface:
+        if self._highlight_surface is None:
+            assert self.surface is not None
+            self._highlight_surface = self.surface.copy()
+            self._highlight_surface.fill(
+                (28, 28, 28, 0),
+                special_flags=pygame.BLEND_RGB_ADD,
+            )
+        return self._highlight_surface
 
     def set_position(self, pos: Position, screen_w: int) -> None:
         positions = {
@@ -92,16 +120,17 @@ class CharacterSprite:
             x += random.randint(-3, 3)
             y += random.randint(-2, 2)
 
-        temp = self.surface.copy()
         base_alpha = self.alpha
+        surface = self.surface
         if dimmed:
-            temp.fill((120, 120, 120, 255), special_flags=pygame.BLEND_RGBA_MULT)
+            surface = self._dimmed_variant()
             base_alpha = min(base_alpha, 150)
         elif highlighted:
-            temp.fill((28, 28, 28, 0), special_flags=pygame.BLEND_RGB_ADD)
+            surface = self._highlight_variant()
         if base_alpha < 255:
-            temp.set_alpha(base_alpha)
-        screen.blit(temp, (x, y))
+            surface = surface.copy()
+            surface.set_alpha(base_alpha)
+        screen.blit(surface, (x, y))
 
 
 class SceneRenderer:
@@ -130,6 +159,7 @@ class SceneRenderer:
             sprite = self.characters[char_id]
             sprite.sprite_path = path
             sprite.surface = None  # force reload with correct aspect ratio
+            sprite._invalidate_variants()
 
     def _resolve_sprite_path(self, char_id: str) -> Path | None:
         """Return the best known sprite path for this char_id.

@@ -14,6 +14,7 @@ from phantom_seed.ai.protocol import SceneData, VisualType
 from phantom_seed.core.coordinator import GameCoordinator
 from phantom_seed.core.save_system import BacklogEntry, SaveData, SaveSystem
 from phantom_seed.pipeline.async_gen import AsyncPipeline
+from phantom_seed.ui.assets import clear_cache, load_image
 from phantom_seed.ui.dialogue import DialogueBox
 from phantom_seed.ui.fonts import get_font
 from phantom_seed.ui.hud import HUD
@@ -340,12 +341,16 @@ class Engine:
 
     def _restore_from_save(self, data: SaveData) -> None:
         # Rebuild coordinator
+        if self.pipeline is not None:
+            self.pipeline.shutdown()
         self.coordinator = GameCoordinator(self.config)
         self.pipeline = AsyncPipeline(self.coordinator)
+        self.pipeline.reset()
         self.save_system.restore_coordinator(data, self.coordinator)
 
         # Restore renderer
         assert self.scene_renderer is not None
+        clear_cache()
         self.scene_renderer.characters.clear()
         self.scene_renderer.background = None
         self.scene_renderer.bg_path = ""
@@ -371,8 +376,20 @@ class Engine:
 
     def _start_game(self, seed: str) -> None:
         """Initialize game coordinator and request first scene."""
+        if self.pipeline is not None:
+            self.pipeline.shutdown()
         self.coordinator = GameCoordinator(self.config)
         self.pipeline = AsyncPipeline(self.coordinator)
+        self.pipeline.reset()
+        clear_cache()
+        if self.scene_renderer is not None:
+            self.scene_renderer.characters.clear()
+            self.scene_renderer.background = None
+            self.scene_renderer.bg_path = ""
+            self.scene_renderer.set_active_speaker("")
+        self.current_scene = None
+        self._dialogue_index = 0
+        self._backlog.clear()
 
         self.phase = GamePhase.LOADING
         self._loading_dots = 0
@@ -411,9 +428,6 @@ class Engine:
             if line.scene_transition and self.scene_renderer and self.coordinator:
                 cached = self.coordinator.get_cached_bg(line.scene_transition)
                 if cached:
-                    from pathlib import Path
-                    from phantom_seed.ui.assets import load_image
-
                     bg = load_image(
                         cached, (self.config.screen_width, self.config.screen_height)
                     )

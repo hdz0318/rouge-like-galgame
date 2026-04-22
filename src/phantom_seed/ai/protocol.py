@@ -106,6 +106,33 @@ class ScenePlan(BaseModel):
         return normalized
 
 
+class SceneCritique(BaseModel):
+    """Quality assessment for a generated scene draft."""
+
+    passes: bool = True
+    overall_score: int = 80
+    blocking_issues: list[str] = Field(default_factory=list)
+    improvement_notes: list[str] = Field(default_factory=list)
+    continuity_risks: list[str] = Field(default_factory=list)
+    choice_quality: str = ""
+    pacing_quality: str = ""
+    should_retry: bool = False
+
+
+class AgentStageTrace(BaseModel):
+    """Observability record for one agent stage."""
+
+    stage: str
+    model: str
+    status: str = "ok"
+    summary: str = ""
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    finish_reason: str = ""
+    attempt: int = 1
+
+
 class SceneData(BaseModel):
     """A single scene segment returned by the AI."""
 

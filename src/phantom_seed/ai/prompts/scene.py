@@ -86,6 +86,9 @@ SCENE_WRITE_PROMPT_TEMPLATE = """\
 ## 本幕剧情规划
 {scene_plan}
 
+## 上一轮审查反馈
+{revision_brief}
+
 ## 本次剧情生成要求
 - 必须输出 **25-45 条对话**（严格执行，少于20条视为失败）
 - 必须包含至少 **2次场景/地点切换**（使用 scene_transition 字段）
@@ -111,6 +114,52 @@ SCENE_WRITE_PROMPT_TEMPLATE = """\
   - next_hook：下一幕最该承接的钩子
 
 请生成下一段剧情场景，严格按 JSON 格式输出。"""
+
+SCENE_CRITIQUE_PROMPT_TEMPLATE = """\
+你现在扮演剧情质量控制 agent。你的任务不是改稿，而是判断下面这版 SceneData 草稿是否达到了可进入最终审校的质量门槛。
+
+## 当前角色档案
+{character_profile}
+
+## 女主阵容摘要
+{cast_summary}
+
+## 当前游戏状态
+- 当前焦点女主: {active_heroine}
+- 好感度: {affection}/100
+- 当前场景编号: 第 {round_number} 幕
+- 章节节拍: {chapter_beat}
+- 路线阶段: {route_phase}
+- 锁定线路: {route_locked_to}
+
+## 路线蓝图
+{route_blueprint}
+
+## 当前目标结局
+{ending_target}
+
+## 故事历史摘要
+{history_summary}
+
+## 剧情记忆
+{story_memory}
+
+## 本幕剧情规划
+{scene_plan}
+
+## 待评估草稿
+{scene_draft}
+
+## 评估要求
+- 只判断质量，不重写 JSON
+- 重点检查：连续性、角色人设稳定性、选项分线价值、节奏、转场自然度、视觉字段风格稳定性
+- 如果问题会明显影响玩家体验或后续连载，请放入 blocking_issues
+- 如果只是可优化但不阻塞交付，放入 improvement_notes
+- overall_score 为 0-100
+- passes 代表是否达到“可以进入最终审校”的门槛
+- should_retry 代表是否建议重新草拟，而不是直接进入 review
+
+请严格按 SceneCritique 的 JSON 输出，不要附加解释。"""
 
 SCENE_REVIEW_PROMPT_TEMPLATE = """\
 你现在扮演剧情审校 agent。请检查下面的剧本草稿是否存在以下问题，并直接输出修正后的最终 SceneData JSON：
@@ -173,6 +222,13 @@ def build_scene_write_messages(**payload: str) -> list[dict[str, str]]:
     return [
         {"role": "system", "content": SYSTEM_MESSAGE},
         {"role": "user", "content": SCENE_WRITE_PROMPT_TEMPLATE.format(**payload)},
+    ]
+
+
+def build_scene_critique_messages(**payload: str) -> list[dict[str, str]]:
+    return [
+        {"role": "system", "content": SYSTEM_MESSAGE},
+        {"role": "user", "content": SCENE_CRITIQUE_PROMPT_TEMPLATE.format(**payload)},
     ]
 
 

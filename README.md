@@ -23,7 +23,7 @@
 
 ## 技术栈
 
-- Python `>=3.14`
+- Python `>=3.11`
 - `pygame-ce`
 - `pydantic`
 - `Pillow`

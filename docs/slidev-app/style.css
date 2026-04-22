@@ -1,0 +1,42 @@
+.slidev-layout {
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 28%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.14), transparent 24%),
+    linear-gradient(135deg, #f8fafc 0%, #eef6ff 48%, #f5f9f3 100%);
+  color: #0f172a;
+}
+
+h1 {
+  font-size: 2.35rem !important;
+  line-height: 1.1 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em;
+  color: #0b1220;
+}
+
+h2,
+h3 {
+  color: #153b66;
+  font-weight: 750 !important;
+}
+
+strong,
+.slidev-layout blockquote {
+  color: #14532d;
+}
+
+blockquote {
+  border-left: 4px solid #16a34a;
+  background: rgba(255, 255, 255, 0.65);
+  padding: 0.8rem 1rem;
+  border-radius: 0.75rem;
+}
+
+code {
+  color: #0f766e;
+}
+
+ul li,
+ol li {
+  margin: 0.35rem 0;
+}
