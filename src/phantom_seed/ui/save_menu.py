@@ -92,11 +92,13 @@ class SaveMenuOverlay:
                 ("S   存档", "save"),
                 ("L   读档", "load"),
                 ("B   回放日志", "backlog"),
+                ("CONFIG  设置", "config"),
             ]
         else:
             self._ctx_items = [
                 ("F9  快速读档", "qload"),
                 ("L   读档", "load"),
+                ("CONFIG  设置", "config"),
             ]
         self.mode = OverlayMode.CONTEXT_MENU
         self._ctx_hover = -1

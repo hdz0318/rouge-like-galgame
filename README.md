@@ -3,6 +3,14 @@
 一个结合了 `Roguelike` 结构与 `Galgame / Visual Novel` 演出的实验型项目。  
 游戏会基于随机种子动态生成女主设定、剧情场景、对话分支与背景/立绘，并通过 `pygame-ce` 渲染为可游玩的视觉小说体验。
 
+## 游戏截图
+
+| 多角色同屏 | 单人演出 |
+| --- | --- |
+| <img src="docs/slidev-app/public/screenshots/new/mulit.png" alt="多角色同屏演出截图" width="100%"> | <img src="docs/slidev-app/public/screenshots/new/single.png" alt="单人场景演出截图" width="100%"> |
+| 分支选择 | CG场景 |
+| <img src="docs/slidev-app/public/screenshots/new/choice.png" alt="剧情分支选择截图" width="100%"> | <img src="docs/slidev-app/public/screenshots/new/climax.png" alt="高潮场景截图" width="100%"> |
+
 ## 项目特点
 
 - 基于种子生成每轮不同的角色阵容与叙事氛围

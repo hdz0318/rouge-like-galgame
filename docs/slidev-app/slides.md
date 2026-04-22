@@ -75,13 +75,13 @@ layout: cover
 
 **单角色剧情场景**
 
-<img src="/screenshots/1.png" alt="单角色场景" class="w-full max-h-[15rem] object-contain rounded-lg shadow mt-3" />
+<img src="/screenshots/new/single.png" alt="单角色场景" class="w-full max-h-[15rem] object-contain rounded-lg shadow mt-3" />
 
 <div class="text-xs leading-snug mt-3">
 
-- 背景、立绘、对白与选项同时进入游戏界面
-- 玩家点击选项后，系统继续生成下一幕内容
-- 说明 AI 输出已被程序稳定消费，而非停留在文本结果
+- 展示单角色场景下的背景、立绘与对白联动
+- 说明生成结果已经进入标准视觉小说界面，而不是停留在文本输出
+- 体现系统已经具备基础可玩性与界面整合能力
 
 </div>
 
@@ -91,19 +91,65 @@ layout: cover
 
 **多角色舞台调度**
 
-<img src="/screenshots/image.png" alt="多角色舞台" class="w-full max-h-[15rem] object-contain rounded-lg shadow mt-3" />
+<img src="/screenshots/new/mulit.png" alt="多角色舞台" class="w-full max-h-[15rem] object-contain rounded-lg shadow mt-3" />
 
 <div class="text-xs leading-snug mt-3">
 
-- 输出不仅有对白，还包含角色站位、出入场等舞台指令
-- 程序依据 `stage_commands` 控制视觉呈现
-- 说明结构化结果能够同时驱动叙事与界面渲染
+- 同一场景可同时调度多位角色进入画面
+- 系统不只生成对白，也生成角色站位与同屏关系
+- 体现结构化协议能够直接驱动舞台呈现
 
 </div>
 
 </div>
 
 </div>
+
+<!-- 演讲者备注：这一页先证明系统已经“能跑起来”，从单角色到多角色，重点讲可运行性与结构化渲染能力。 -->
+
+---
+
+# Demo：交互与演出
+
+<div class="page-kicker">Interaction & Highlights</div>
+
+<div class="grid grid-cols-2 gap-4 mt-3">
+
+<div class="section-card p-4">
+
+**玩家分支选择**
+
+<img src="/screenshots/new/choice.png" alt="玩家分支选择" class="w-full max-h-[15rem] object-contain rounded-lg shadow mt-3" />
+
+<div class="text-xs leading-snug mt-3">
+
+- 界面直接呈现可点击选项，而不是只给出文本建议
+- 玩家选择会反馈到状态机，并影响下一轮剧情生成
+- 形成“生成 - 交互 - 再生成”的闭环
+
+</div>
+
+</div>
+
+<div class="section-card p-4">
+
+**关键时刻 CG**
+
+<img src="/screenshots/new/climax.png" alt="关键时刻 CG" class="w-full max-h-[15rem] object-contain rounded-lg shadow mt-3" />
+
+<div class="text-xs leading-snug mt-3">
+
+- 在关键剧情节点可切换到更具表现力的高质量 CG 画面
+- 说明系统能够根据任务类型分配不同图像生成资源
+- 说明系统并非统一流水图，而是具有情绪峰值的多模态演出
+
+</div>
+
+</div>
+
+</div>
+
+<!-- 演讲者备注：这一页再讲“能交互、也能演出”，先说玩家选择如何影响生成，再说关键节点如何切换到更强的视觉表现。 -->
 
 ---
 
@@ -138,6 +184,9 @@ layout: cover
 </div>
 
 </div>
+
+<!-- 引用：Anthropic, Effective context engineering for AI agents, https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents -->
+<!-- 引用：Anthropic, Managing context on the Claude Developer Platform, https://www.anthropic.com/news/context-management -->
 
 ---
 
@@ -468,25 +517,34 @@ layout: cover
 
 <div class="section-card p-5">
 
-**文本生成模型**
+**文本侧分工**
 
-- 主文本模型：`x-ai/grok-4.1-fast`
+- 通用文本模型：`x-ai/grok-4.1-fast`
+- 结构化场景模型：`x-ai/grok-4.1`
 - 草稿生成模型：`google/gemini-3-flash-preview`
 - 接入方式：通过 `OpenRouter` 统一调度
 
-主文本模型负责规划、评审与整合；草稿模型负责候选内容生成，以平衡质量、速度与成本。
+其中，快速模型主要负责通用生成与流程推进；更稳定的结构化模型负责输出 `SceneData` 等可解析结果；草稿模型负责候选内容生成，用于平衡质量、延迟与成本。
 
 </div>
 
 <div class="section-card p-5">
 
-**图像生成模型**
+**图像侧分工**
 
 - 常规图像模型：`google/gemini-3.1-flash-image-preview`
-- CG / 宣传图模型：`google/gemini-3-pro-image-preview`
-- 按任务类型分配不同模型资源
+- 关键 CG / 展示图模型：`google/gemini-3-pro-image-preview`
+- 同样通过 `OpenRouter` 统一接入
 
-常规模型服务流程内背景与画面，高质量模型用于 CG 和展示型图像。
+常规模型服务于背景、立绘和流程内画面；更强图像模型用于高潮场景和展示型 CG，以保证关键节点的视觉表现力。
+
+</div>
+
+<div class="accent-note p-4 col-span-2 text-sm leading-relaxed">
+
+**设计原则**
+
+我们没有采用“一个模型包揽全部任务”的方案，而是按任务类型分配模型能力：快速模型负责流程吞吐，结构化模型负责稳定输出，高质量图像模型负责关键演出，从而兼顾可用性、成本与展示效果。
 
 </div>
 

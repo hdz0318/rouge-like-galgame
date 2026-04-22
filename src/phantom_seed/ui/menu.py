@@ -15,6 +15,7 @@ class ChoiceMenu:
         self.screen_w = screen_width
         self.screen_h = screen_height
         self.font: pygame.font.Font | None = None
+        self.hint_font: pygame.font.Font | None = None
         self.choices: list[Choice] = []
         self.hovered: int = -1
         self.selected: int = -1
@@ -23,10 +24,10 @@ class ChoiceMenu:
 
     def _ensure_font(self) -> None:
         if self.font is None:
-            self.font = get_font(22)
+            self.font = get_font(24)
+            self.hint_font = get_font(15)
 
     def show(self, choices: list[Choice]) -> None:
-        """Display a set of choices."""
         self.choices = choices
         self.hovered = -1
         self.selected = -1
@@ -40,11 +41,11 @@ class ChoiceMenu:
 
     def _build_rects(self) -> None:
         self._ensure_font()
-        btn_w = min(600, self.screen_w - 200)
-        btn_h = 50
-        spacing = 12
+        btn_w = min(720, self.screen_w - 220)
+        btn_h = 68
+        spacing = 16
         total_h = len(self.choices) * btn_h + (len(self.choices) - 1) * spacing
-        start_y = (self.screen_h - total_h) // 2
+        start_y = self.screen_h // 2 - total_h // 2 - 10
         start_x = (self.screen_w - btn_w) // 2
 
         self._rects = []
@@ -62,7 +63,6 @@ class ChoiceMenu:
                 break
 
     def handle_click(self, pos: tuple[int, int]) -> Choice | None:
-        """Handle a click. Returns the selected Choice or None."""
         if not self.visible:
             return None
         for i, rect in enumerate(self._rects):
@@ -76,27 +76,33 @@ class ChoiceMenu:
             return
         self._ensure_font()
         assert self.font is not None
+        assert self.hint_font is not None
 
-        # Dim overlay
         overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 100))
+        overlay.fill((16, 10, 18, 112))
         screen.blit(overlay, (0, 0))
+
+        title = self.hint_font.render("请选择接下来的行动方向", True, (244, 228, 236))
+        screen.blit(title, ((self.screen_w - title.get_width()) // 2, self._rects[0].y - 38))
 
         for i, (choice, rect) in enumerate(zip(self.choices, self._rects)):
             is_hover = i == self.hovered
+            number = self.hint_font.render(str(i + 1), True, (255, 246, 250))
 
-            # Button background
-            bg_color = (120, 70, 100, 220) if is_hover else (70, 45, 65, 200)
-            border_color = (220, 170, 200) if is_hover else (140, 100, 130)
+            panel = pygame.Surface((rect.w, rect.h), pygame.SRCALPHA)
+            fill = (126, 82, 108, 228) if is_hover else (70, 46, 63, 212)
+            border = (255, 221, 233) if is_hover else (190, 152, 173)
+            pygame.draw.rect(panel, fill, panel.get_rect(), border_radius=18)
+            pygame.draw.rect(panel, border, panel.get_rect(), 2 if is_hover else 1, border_radius=18)
+            gloss = pygame.Surface((rect.w, rect.h // 2), pygame.SRCALPHA)
+            gloss.fill((255, 255, 255, 12))
+            panel.blit(gloss, (0, 0))
+            screen.blit(panel, rect.topleft)
 
-            btn_surf = pygame.Surface((rect.w, rect.h), pygame.SRCALPHA)
-            btn_surf.fill(bg_color)
-            screen.blit(btn_surf, rect.topleft)
-            pygame.draw.rect(screen, border_color, rect, 2)
+            bubble = pygame.Surface((32, 32), pygame.SRCALPHA)
+            pygame.draw.circle(bubble, (237, 170, 200, 230), (16, 16), 16)
+            screen.blit(bubble, (rect.x + 18, rect.y + 18))
+            screen.blit(number, (rect.x + 12 + (32 - number.get_width()) // 2, rect.y + 7))
 
-            # Text
-            text_color = (255, 240, 245) if is_hover else (220, 210, 220)
-            text_surf = self.font.render(choice.text, True, text_color)
-            text_x = rect.x + (rect.w - text_surf.get_width()) // 2
-            text_y = rect.y + (rect.h - text_surf.get_height()) // 2
-            screen.blit(text_surf, (text_x, text_y))
+            text = self.font.render(choice.text, True, (255, 243, 248) if is_hover else (238, 227, 236))
+            screen.blit(text, (rect.x + 66, rect.y + 18))
