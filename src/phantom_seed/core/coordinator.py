@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import threading
 from pathlib import Path
@@ -13,7 +14,10 @@ from phantom_seed.ai.protocol import (
     FALLBACK_SCENE,
     CharacterProfile,
     Choice,
+    Position,
     SceneData,
+    StageAction,
+    StageCommand,
     VisualType,
 )
 from phantom_seed.core.roguelike import generate_memory_fragment, roll_random_event
@@ -101,6 +105,25 @@ class GameCoordinator:
                 heroine = self._fallback_heroine(idx)
             self.heroines.append(heroine)
             self.state.register_heroine(heroine.name, initial_affection=self.config.initial_affection)
+
+    def _generate_single_heroine(
+        self,
+        idx: int,
+        seed_hash: str,
+        trait_code: str,
+    ) -> CharacterProfile:
+        try:
+            return self.character_chain.invoke(seed_hash, trait_code)
+        except Exception:
+            log.exception("Failed to generate heroine %s", idx)
+            return self._fallback_heroine(idx)
+
+    def _generate_single_sprite(self, heroine: CharacterProfile) -> tuple[str, Path | None]:
+        try:
+            return heroine.name, self.imagen.generate_character_sprite(heroine.visual_description)
+        except Exception:
+            log.exception("Failed to generate heroine sprite: %s", heroine.name)
+            return heroine.name, None
 
     def _cast_summary(self) -> str:
         if not self.heroines:
@@ -194,6 +217,7 @@ class GameCoordinator:
 
     def _postprocess_scene(self, scene: SceneData) -> SceneData:
         self._normalize_choices(scene)
+        self._normalize_stage_blocking(scene)
         if self.state.route_phase in ("climax", "ending"):
             scene.game_state_update.is_climax = True
         if self.state.route_phase == "ending":
@@ -205,6 +229,91 @@ class GameCoordinator:
             if locked and not scene.scene_goal:
                 scene.scene_goal = f"{locked}线路的{ending_grade}结局收束"
         return scene
+
+    def _normalize_stage_blocking(self, scene: SceneData) -> None:
+        speakers: list[str] = []
+        for line in scene.script:
+            speaker = line.speaker.strip()
+            if not speaker or speaker in ("旁白", "系统", "我", "主角"):
+                continue
+            if speaker not in speakers:
+                speakers.append(speaker)
+        if not speakers:
+            return
+
+        # Prefer showing the current focus heroine, then the remaining speakers.
+        ordered: list[str] = []
+        focus_name = self.state.active_heroine or (self.character.name if self.character else "")
+        if focus_name and focus_name in speakers:
+            ordered.append(focus_name)
+        ordered.extend(name for name in speakers if name not in ordered)
+        ordered = ordered[:3]
+
+        if len(ordered) == 1:
+            positions = [Position.CENTER]
+        elif len(ordered) == 2:
+            positions = [Position.LEFT, Position.RIGHT]
+        else:
+            positions = [Position.LEFT, Position.CENTER, Position.RIGHT]
+
+        existing_chars = {
+            cmd.character: cmd
+            for cmd in scene.stage_commands
+            if cmd.action in (StageAction.ENTER, StageAction.MOVE)
+        }
+        staged_chars = {
+            cmd.character
+            for cmd in scene.stage_commands
+            if cmd.character
+        }
+        normalized_cmds: list[StageCommand] = []
+        touched: set[str] = set()
+
+        for idx, speaker in enumerate(ordered):
+            pos = positions[min(idx, len(positions) - 1)]
+            existing = existing_chars.get(speaker)
+            if existing is not None:
+                normalized_cmds.append(
+                    StageCommand(
+                        action=StageAction.MOVE if existing.action == StageAction.MOVE else StageAction.ENTER,
+                        character=speaker,
+                        pos=pos,
+                        expression=existing.expression,
+                    )
+                )
+            else:
+                normalized_cmds.append(
+                    StageCommand(
+                        action=StageAction.ENTER,
+                        character=speaker,
+                        pos=pos,
+                        expression="default",
+                    )
+                )
+            touched.add(speaker)
+
+        for cmd in scene.stage_commands:
+            if cmd.character in touched and cmd.action in (StageAction.ENTER, StageAction.MOVE):
+                continue
+
+            # Keep explicit leave commands, but drop stale enter/move commands for non-participating heroines.
+            if cmd.action == StageAction.LEAVE:
+                normalized_cmds.append(cmd)
+
+        for heroine_name in self._heroine_names():
+            if heroine_name in touched:
+                continue
+            if heroine_name in staged_chars or heroine_name in speakers:
+                normalized_cmds.append(
+                    StageCommand(
+                        action=StageAction.LEAVE,
+                        character=heroine_name,
+                        pos=Position.CENTER,
+                        expression="default",
+                    )
+                )
+
+        scene.stage_commands = normalized_cmds
 
     def _bg_key(self, desc: str) -> str:
         """Normalize a background description into a cache key."""
@@ -310,24 +419,29 @@ class GameCoordinator:
         self.heroines.clear()
         self.heroine_sprite_paths.clear()
         variants = self._heroine_variants(seed_string)
-        for idx, (seed_hash, trait_code) in enumerate(variants, start=1):
-            self._emit_progress(progress_cb, 2, 5, f"生成人设 {idx}/{len(variants)}")
-            try:
-                heroine = self.character_chain.invoke(
-                    seed_hash,
-                    trait_code,
-                    progress_cb=lambda message, idx=idx, total=len(variants): (
-                        self._emit_progress(
-                            progress_cb,
-                            2,
-                            5,
-                            f"人设 {idx}/{total} {message}",
-                        )
-                    ),
+        total_variants = len(variants)
+        if total_variants:
+            self._emit_progress(progress_cb, 2, 5, f"并行生成人设 0/{total_variants}")
+        heroine_results: list[CharacterProfile | None] = [None] * total_variants
+        completed_heroines = 0
+        with ThreadPoolExecutor(max_workers=min(3, max(1, total_variants))) as executor:
+            futures = {
+                executor.submit(self._generate_single_heroine, idx, seed_hash, trait_code): idx
+                for idx, (seed_hash, trait_code) in enumerate(variants)
+            }
+            for future in as_completed(futures):
+                idx = futures[future]
+                heroine_results[idx] = future.result()
+                completed_heroines += 1
+                self._emit_progress(
+                    progress_cb,
+                    2,
+                    5,
+                    f"并行生成人设 {completed_heroines}/{total_variants}",
                 )
-            except Exception:
-                log.exception("Failed to generate heroine %s", idx - 1)
-                heroine = self._fallback_heroine(idx - 1)
+        for heroine in heroine_results:
+            if heroine is None:
+                continue
             self.heroines.append(heroine)
             self.state.register_heroine(
                 heroine.name,
@@ -338,21 +452,24 @@ class GameCoordinator:
         # Generate sprites
         self._emit_progress(progress_cb, 3, 5, "生成角色立绘")
         total_heroines = max(1, len(self.heroines))
-        for idx, heroine in enumerate(self.heroines, start=1):
-            self._emit_progress(
-                progress_cb,
-                3,
-                5,
-                f"立绘 {idx}/{total_heroines} {heroine.name}",
-            )
-            try:
-                sprite_path = self.imagen.generate_character_sprite(
-                    heroine.visual_description
-                )
+        completed_sprites = 0
+        self._emit_progress(progress_cb, 3, 5, f"并行生成立绘 0/{total_heroines}")
+        with ThreadPoolExecutor(max_workers=min(3, total_heroines)) as executor:
+            futures = {
+                executor.submit(self._generate_single_sprite, heroine): heroine.name
+                for heroine in self.heroines
+            }
+            for future in as_completed(futures):
+                heroine_name, sprite_path = future.result()
                 if sprite_path:
-                    self.heroine_sprite_paths[heroine.name] = sprite_path
-            except Exception:
-                log.exception("Failed to generate heroine sprite: %s", heroine.name)
+                    self.heroine_sprite_paths[heroine_name] = sprite_path
+                completed_sprites += 1
+                self._emit_progress(
+                    progress_cb,
+                    3,
+                    5,
+                    f"并行生成立绘 {completed_sprites}/{total_heroines}",
+                )
         self._pick_focus_heroine()
 
         # Generate first scene

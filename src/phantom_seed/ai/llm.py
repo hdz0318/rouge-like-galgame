@@ -83,6 +83,15 @@ class OpenRouterClient:
             return "\n".join(texts).strip()
         return ""
 
+    @staticmethod
+    def _supports_strict_json_schema(model: str) -> bool:
+        lowered = model.lower()
+        return (
+            lowered.startswith("openai/")
+            or lowered.startswith("anthropic/")
+            or lowered.startswith("google/")
+        )
+
     @classmethod
     def _normalize_json_schema(cls, schema: dict[str, Any]) -> dict[str, Any]:
         defs = schema.get("$defs", {})
@@ -133,6 +142,7 @@ class OpenRouterClient:
         max_tokens: int,
         stream_progress: ProgressCallback | None = None,
     ) -> BaseModel:
+        supports_json_schema = self._supports_strict_json_schema(model)
         schema = self._normalize_json_schema(schema_model.model_json_schema())
         payload = {
             "model": model,
@@ -141,25 +151,32 @@ class OpenRouterClient:
             "max_tokens": max_tokens,
             "provider": {
                 "allow_fallbacks": False,
-                "require_parameters": True,
+                "require_parameters": supports_json_schema,
             },
-            "response_format": {
+        }
+        payload["plugins"] = [
+            {"id": "response-healing"},
+        ]
+        if supports_json_schema:
+            payload["response_format"] = {
                 "type": "json_schema",
                 "json_schema": {
                     "name": schema_model.__name__,
                     "strict": True,
                     "schema": schema,
                 },
-            },
-        }
-        payload["plugins"] = [
-            {"id": "response-healing"},
-        ]
+            }
+        else:
+            payload["response_format"] = {"type": "json_object"}
         if stream_progress:
             stream_progress(
                 {
                     "type": "keepalive",
-                    "message": "structured request in progress",
+                    "message": (
+                        "structured json_schema request in progress"
+                        if supports_json_schema
+                        else "json_object request in progress"
+                    ),
                 }
             )
         data = self._post_json(payload)

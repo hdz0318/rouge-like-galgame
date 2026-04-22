@@ -73,7 +73,13 @@ class CharacterSprite:
         if self.shake_timer > 0:
             self.shake_timer = max(0, self.shake_timer - dt_ms)
 
-    def render(self, screen: pygame.Surface) -> None:
+    def render(
+        self,
+        screen: pygame.Surface,
+        *,
+        highlighted: bool = False,
+        dimmed: bool = False,
+    ) -> None:
         if not self.visible or self.surface is None:
             return
         x = int(self.current_x - self.surface.get_width() / 2)
@@ -86,12 +92,16 @@ class CharacterSprite:
             x += random.randint(-3, 3)
             y += random.randint(-2, 2)
 
-        if self.alpha < 255:
-            temp = self.surface.copy()
-            temp.set_alpha(self.alpha)
-            screen.blit(temp, (x, y))
-        else:
-            screen.blit(self.surface, (x, y))
+        temp = self.surface.copy()
+        base_alpha = self.alpha
+        if dimmed:
+            temp.fill((120, 120, 120, 255), special_flags=pygame.BLEND_RGBA_MULT)
+            base_alpha = min(base_alpha, 150)
+        elif highlighted:
+            temp.fill((28, 28, 28, 0), special_flags=pygame.BLEND_RGB_ADD)
+        if base_alpha < 255:
+            temp.set_alpha(base_alpha)
+        screen.blit(temp, (x, y))
 
 
 class SceneRenderer:
@@ -108,6 +118,7 @@ class SceneRenderer:
         # Main character sprite path — used as fallback for any unregistered ID
         self._main_sprite_path: Path | None = None
         self._main_char_id: str = ""
+        self._active_speaker: str = ""
 
     def set_character_sprite_path(self, char_id: str, path: Path | None) -> None:
         """Register a character's sprite image path (and record as main character)."""
@@ -157,6 +168,16 @@ class SceneRenderer:
         for cmd in scene.stage_commands:
             self._execute_command(cmd)
 
+    def set_active_speaker(self, speaker: str) -> None:
+        self._active_speaker = speaker.strip()
+
+    def _matches_active_speaker(self, char_id: str) -> bool:
+        active = self._active_speaker.lower().replace(" ", "")
+        current = char_id.lower().replace(" ", "")
+        if not active:
+            return False
+        return active == current or active in current or current in active
+
     def _execute_command(self, cmd: StageCommand) -> None:
         char_id = cmd.character
         if char_id not in self.characters:
@@ -201,5 +222,8 @@ class SceneRenderer:
         if not self.hide_sprites:
             visible = [s for s in self.characters.values() if s.visible]
             visible.sort(key=lambda s: s.current_x)
+            has_active = any(self._matches_active_speaker(sprite.char_id) for sprite in visible)
             for sprite in visible:
-                sprite.render(screen)
+                highlighted = has_active and self._matches_active_speaker(sprite.char_id)
+                dimmed = has_active and not highlighted
+                sprite.render(screen, highlighted=highlighted, dimmed=dimmed)

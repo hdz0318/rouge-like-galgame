@@ -53,7 +53,7 @@ uv sync --extra dev
 
 ```env
 OPENROUTER_API_KEY=your_key_here
-OPENROUTER_TEXT_MODEL=openai/gpt-4.1-mini
+OPENROUTER_TEXT_MODEL=x-ai/grok-4.1-fast
 OPENROUTER_DRAFT_TEXT_MODEL=google/gemini-3-flash-preview
 OPENROUTER_IMAGE_MODEL=google/gemini-3.1-flash-image-preview
 OPENROUTER_PROMO_IMAGE_MODEL=google/gemini-3-pro-image-preview

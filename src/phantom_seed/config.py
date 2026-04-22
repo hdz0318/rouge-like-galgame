@@ -54,7 +54,7 @@ class Config:
     text_model: str = field(
         default_factory=lambda: os.environ.get(
             "OPENROUTER_TEXT_MODEL",
-            "openai/gpt-4.1-mini",
+            "x-ai/grok-4.1-fast",
         )
     )
     draft_text_model: str = field(

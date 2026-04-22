@@ -182,10 +182,10 @@ class DialogueBox:
                 pygame.SRCALPHA,
             )
             return fallback
-        head_h = max(int(bbox.height * 0.42), self.portrait_size)
-        crop_w = max(int(bbox.width * 0.58), self.portrait_size)
+        head_h = max(int(bbox.height * 0.30), self.portrait_size)
+        crop_w = max(int(bbox.width * 0.50), self.portrait_size)
         crop_x = max(bbox.x + (bbox.width - crop_w) // 2, 0)
-        crop_y = max(bbox.y, 0)
+        crop_y = max(bbox.y - int(bbox.height * 0.03), 0)
         crop_w = min(crop_w, surface.get_width() - crop_x)
         crop_h = min(head_h, surface.get_height() - crop_y)
         portrait_rect = pygame.Rect(crop_x, crop_y, crop_w, crop_h)
@@ -202,7 +202,7 @@ class DialogueBox:
         )
         output = pygame.Surface((self.portrait_size, self.portrait_size), pygame.SRCALPHA)
         x = (self.portrait_size - scaled.get_width()) // 2
-        y = (self.portrait_size - scaled.get_height()) // 2
+        y = min(0, (self.portrait_size - scaled.get_height()) // 2 - 6)
         output.blit(scaled, (x, y))
         return output
 

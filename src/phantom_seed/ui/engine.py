@@ -360,6 +360,7 @@ class Engine:
         if self.coordinator.current_scene:
             scene = self.coordinator.current_scene
             self.current_scene = scene
+            self.scene_renderer.set_active_speaker("")
             self.scene_renderer.apply_scene(scene)
             self.phase = GamePhase.DIALOGUE
             self._set_current_dialogue()
@@ -383,6 +384,7 @@ class Engine:
         self._dialogue_index = 0
 
         assert self.scene_renderer is not None
+        self.scene_renderer.set_active_speaker("")
         self._register_heroine_sprites()
         self.scene_renderer.apply_scene(scene)
 
@@ -401,6 +403,10 @@ class Engine:
         assert self.dialogue_box is not None
         if self._dialogue_index < len(self.current_scene.script):
             line = self.current_scene.script[self._dialogue_index]
+            if self.scene_renderer is not None:
+                self.scene_renderer.set_active_speaker(
+                    self._visual_speaker_name(line.speaker)
+                )
             # Handle mid-scene background transition
             if line.scene_transition and self.scene_renderer and self.coordinator:
                 cached = self.coordinator.get_cached_bg(line.scene_transition)
@@ -646,3 +652,16 @@ class Engine:
         if self.coordinator.character_sprite_path:
             return str(self.coordinator.character_sprite_path)
         return None
+
+    def _visual_speaker_name(self, speaker: str) -> str:
+        if not self.coordinator:
+            return ""
+        normalized = speaker.strip()
+        if normalized in ("", "旁白", "系统", "我", "主角"):
+            return ""
+        compact = normalized.lower().replace(" ", "")
+        for name in self.coordinator.heroine_sprite_paths:
+            candidate = name.lower().replace(" ", "")
+            if compact == candidate or compact in candidate or candidate in compact:
+                return name
+        return ""

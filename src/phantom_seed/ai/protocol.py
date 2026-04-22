@@ -72,6 +72,39 @@ class ScenePlan(BaseModel):
     ending_hook: str = ""
     choice_design: list[str] = Field(default_factory=list)
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_alternate_plan_fields(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        normalized = dict(data)
+        if not normalized.get("scene_purpose"):
+            alt = normalized.get("scene_goal") or normalized.get("goal")
+            if alt:
+                normalized["scene_purpose"] = alt
+        raw_choice_design = normalized.get("choice_design")
+        if isinstance(raw_choice_design, list):
+            rewritten: list[str] = []
+            for item in raw_choice_design:
+                if isinstance(item, str):
+                    rewritten.append(item)
+                    continue
+                if isinstance(item, dict):
+                    text = str(item.get("text", "")).strip()
+                    extras = [
+                        f"{key}={value}"
+                        for key, value in item.items()
+                        if key != "text"
+                    ]
+                    summary = text or "选项方向"
+                    if extras:
+                        summary = f"{summary} | {'; '.join(extras)}"
+                    rewritten.append(summary)
+                    continue
+                rewritten.append(str(item))
+            normalized["choice_design"] = rewritten
+        return normalized
+
 
 class SceneData(BaseModel):
     """A single scene segment returned by the AI."""
