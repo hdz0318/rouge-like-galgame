@@ -83,7 +83,7 @@ class GameCoordinator:
                 f"{fallback_hair[index % len(fallback_hair)]}, "
                 f"{fallback_eyes[index % len(fallback_eyes)]}, "
                 f"{fallback_styles[index % len(fallback_styles)]}, "
-                "distinctive accessory, elegant anime visual novel style"
+                "distinctive accessory, authentic Japanese anime galgame heroine style, bishoujo visual novel sprite aesthetic"
             ),
             signature_look=(
                 f"{fallback_hair[index % len(fallback_hair)]} with "
@@ -300,18 +300,19 @@ class GameCoordinator:
             if cmd.action == StageAction.LEAVE:
                 normalized_cmds.append(cmd)
 
+        # Force every non-participating heroine off stage so sprites from the
+        # previous scene do not linger unless this scene explicitly keeps them.
         for heroine_name in self._heroine_names():
             if heroine_name in touched:
                 continue
-            if heroine_name in staged_chars or heroine_name in speakers:
-                normalized_cmds.append(
-                    StageCommand(
-                        action=StageAction.LEAVE,
-                        character=heroine_name,
-                        pos=Position.CENTER,
-                        expression="default",
-                    )
+            normalized_cmds.append(
+                StageCommand(
+                    action=StageAction.LEAVE,
+                    character=heroine_name,
+                    pos=Position.CENTER,
+                    expression="default",
                 )
+            )
 
         scene.stage_commands = normalized_cmds
 

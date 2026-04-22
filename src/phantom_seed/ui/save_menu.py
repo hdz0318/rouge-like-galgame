@@ -278,7 +278,7 @@ class SaveMenuOverlay:
                 screen.blit(char_name, (rect.x + tx_off, rect.y + 28))
 
                 meta = self._font_small.render(
-                    f"第 {info['round']} 幕   好感度 {info['affection']}",
+                    f"第 {info['round']} 幕",
                     True,
                     (180, 150, 170),
                 )

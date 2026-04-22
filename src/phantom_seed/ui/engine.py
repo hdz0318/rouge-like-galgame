@@ -640,7 +640,7 @@ class Engine:
             self.scene_renderer.set_character_sprite_path(heroine.name, sprite_path)
 
     def _speaker_portrait_path(self, speaker: str) -> str | None:
-        if not self.coordinator or speaker in ("", "旁白", "系统"):
+        if not self.coordinator or speaker in ("", "旁白", "系统", "我", "主角"):
             return None
         normalized = speaker.lower().replace(" ", "")
         for name, path in self.coordinator.heroine_sprite_paths.items():

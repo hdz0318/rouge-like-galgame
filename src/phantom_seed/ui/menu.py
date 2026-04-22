@@ -100,14 +100,3 @@ class ChoiceMenu:
             text_x = rect.x + (rect.w - text_surf.get_width()) // 2
             text_y = rect.y + (rect.h - text_surf.get_height()) // 2
             screen.blit(text_surf, (text_x, text_y))
-
-            # Stat delta hint
-            if choice.target_state_delta:
-                hints = []
-                for stat, val in choice.target_state_delta.items():
-                    sign = "+" if val > 0 else ""
-                    label_name = "好感度" if stat == "affection" else stat
-                    hints.append(f"{label_name} {sign}{val}")
-                hint_text = " | ".join(hints)
-                hint_surf = self.font.render(hint_text, True, (180, 140, 160))
-                screen.blit(hint_surf, (rect.right - hint_surf.get_width() - 12, rect.y + 4))

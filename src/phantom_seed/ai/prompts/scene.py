@@ -46,6 +46,7 @@ SCENE_PLAN_PROMPT_TEMPLATE = """\
 - location_sequence 给出本幕的地点/时段推进，至少 3 个节点，便于后续生成自然转场
 - choice_design 说明每个选项想引导的剧情方向，而不是只写数值变化
 - 如果上一幕有钩子或未解决问题，优先纳入本幕
+- 所有会进入 `background`、`scene_transition`、`climax_cg_prompt` 的视觉描述，都要默认服务于日本动漫风格的 galgame 背景与事件 CG 生成
 
 请严格按 ScenePlan 的 JSON 输出，不要附加解释。"""
 
@@ -100,6 +101,7 @@ SCENE_WRITE_PROMPT_TEMPLATE = """\
 - 若路线阶段是 `climax` 或 `ending`，必须朝 {ending_target} 这种结局质感推进
 - 基调是温馨浪漫的成人恋爱故事，允许有小冲突和误会，但整体基调积极向上
 - 【强制约束】所有角色均为 18 岁以上大学生或成年人，不得出现任何涉及未成年人的浪漫或亲密内容
+- `background` / `scene_transition` / `climax_cg_prompt` 的英文内容必须明显偏向 Japanese anime galgame aesthetics，不要使用 photo, realistic, cinematic live-action, 3D render 之类的导向
 - 在最后提供 **2-3 个选择分支**，选项要对剧情走向有实质影响
 - 除正常 SceneData 字段外，还要认真填写：
   - scene_goal：本幕完成了什么推进
@@ -155,6 +157,7 @@ SCENE_REVIEW_PROMPT_TEMPLATE = """\
 - choice 的文案和影响方向要明显区分
 - 不要生成阵容外的新可视化女主；若已锁线，不要把剧情重心切回其他女主
 - lock_window 阶段要保留明确分支感；ending 阶段必须让结局落点清晰
+- 任何视觉字段都要修正到日本动漫 galgame 语境，避免写实或非二次元风格漂移
 - 只输出最终可用的 SceneData JSON
 """
 

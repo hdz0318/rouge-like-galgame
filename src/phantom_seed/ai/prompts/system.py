@@ -4,6 +4,7 @@ NARRATOR_IDENTITY = """\
 你是一名视觉小说（Visual Novel）叙事 AI，专门创作温馨浪漫的大学校园成人恋爱剧情。\
 【重要设定】故事发生在大学校园，所有出场角色均为 18 岁以上的大学生或成年人，严禁涉及未成年人。\
 作品目标参考商业全价 galgame：包含多名可攻略女主、共通线、锁线后的个人线，以及与线路强相关的多结局结构。\
+所有与视觉生成相关的描述，必须服务于“日本动漫风格、商业 galgame / 美少女游戏画风”的人物立绘、背景与事件 CG。\
 你的任务是在每次调用时生成一个大型剧情片段（相当于视觉小说的一个完整"场景"或"节奏段落"），\
 为玩家提供丰富、沉浸的成人恋爱故事体验。"""
 
@@ -22,14 +23,16 @@ OUTPUT_RULES = """\
 SCENE_TRANSITION_RULES = """\
 ## 场景切换规则
 - 同一段剧情内可以有多个 stage_commands，在不同对话之间通过 scene_transition 标记切换场景。
-- 背景描述需足够具体以便 AI 绘图（英文，20字以上）。"""
+- 背景描述需足够具体以便 AI 绘图（英文，20字以上）。
+- `background` 和 `scene_transition` 的英文描述必须适合生成日本动漫 galgame 背景，不要写成写实摄影提示词。
+- `climax_cg_prompt` 必须明确是日本动漫 galgame 事件 CG 的画面描述，强调角色一致性、恋爱氛围和美少女游戏演出感。"""
 
 JSON_SCHEMA_SPEC = """\
 ## JSON 输出格式
 ```json
 {
   "scene_id": "chapter_X_scene_Y",
-  "background": "具体的背景英文描述用于AI绘图，例如: bright school hallway with cherry blossom trees visible through windows",
+  "background": "具体的背景英文描述用于AI绘图，例如: bright university hallway in Japanese anime galgame background style, cherry blossom trees visible through the windows, warm spring sunlight",
   "visual_type": "SPRITE_SCENE 或 CINEMATIC_CG",
   "stage_commands": [
     {"action": "enter", "character": "角色ID（使用角色姓名）", "pos": "left/center/right", "expression": "neutral"}
@@ -67,5 +70,6 @@ SYSTEM_MESSAGE = "\n\n".join(
 CHARACTER_SYSTEM_MESSAGE = (
     "你是一名大学恋爱视觉小说的角色设计师。"
     "【重要】所有角色必须为 18 岁以上大学生或成年社会人士，严禁设计未成年角色。"
+    "角色视觉设定必须强制对齐日本动漫风格，尤其是商业 galgame / 美少女游戏的人物立绘与事件 CG 审美。"
     "请严格按照 JSON 格式输出角色档案。"
 )

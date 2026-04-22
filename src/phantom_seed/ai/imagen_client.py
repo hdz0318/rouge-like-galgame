@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import logging
+import threading
 from collections import deque
 from base64 import b64decode
 from pathlib import Path
@@ -32,6 +33,8 @@ class ImagenClient:
     _SPRITE_FOOT_MARGIN = 36
     _SPRITE_SIDE_MARGIN_RATIO = 0.08
     _ALPHA_THRESHOLD = 16
+    _REMBG_SESSION = None
+    _REMBG_INIT_LOCK = threading.Lock()
 
     def __init__(self, config: Config) -> None:
         self.config = config
@@ -110,9 +113,17 @@ class ImagenClient:
     def _remove_background(img: Image.Image) -> Image.Image:
         """Prefer rembg matting and fall back to simple white-bg removal."""
         try:
-            from rembg import remove
+            from rembg import new_session, remove
 
-            result = remove(img.convert("RGBA"))
+            session = ImagenClient._REMBG_SESSION
+            if session is None:
+                with ImagenClient._REMBG_INIT_LOCK:
+                    session = ImagenClient._REMBG_SESSION
+                    if session is None:
+                        log.info("Initializing rembg session for sprite cutout")
+                        session = new_session("u2net")
+                        ImagenClient._REMBG_SESSION = session
+            result = remove(img.convert("RGBA"), session=session)
             if isinstance(result, bytes):
                 return Image.open(io.BytesIO(result)).convert("RGBA")
             if isinstance(result, Image.Image):

@@ -54,9 +54,9 @@ class CharacterSprite:
 
     def set_position(self, pos: Position, screen_w: int) -> None:
         positions = {
-            Position.LEFT: screen_w * 0.2,
+            Position.LEFT: screen_w * 0.34,
             Position.CENTER: screen_w * 0.5,
-            Position.RIGHT: screen_w * 0.8,
+            Position.RIGHT: screen_w * 0.66,
         }
         self.target_x = positions.get(pos, screen_w * 0.5)
 
