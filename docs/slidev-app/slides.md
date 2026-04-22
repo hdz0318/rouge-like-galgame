@@ -23,6 +23,17 @@ layout: cover
 
 </div>
 
+<div class="mt-6">
+<a
+  href="https://github.com/4627488/rouge-like-galgame"
+  target="_blank"
+  class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+>
+  <span class="text-slate-300">GitHub</span>
+  <span>4627488/rouge-like-galgame</span>
+</a>
+</div>
+
 ---
 
 # 功能展示
@@ -532,3 +543,14 @@ class: text-center
 
 # 谢谢老师
 ## 欢迎提问
+
+<div class="mt-8">
+<a
+  href="https://github.com/4627488/rouge-like-galgame"
+  target="_blank"
+  class="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+>
+  <span class="text-slate-300">GitHub</span>
+  <span>4627488/rouge-like-galgame</span>
+</a>
+</div>
