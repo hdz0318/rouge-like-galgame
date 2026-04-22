@@ -16,7 +16,9 @@ layout: cover
 <div class="mt-10 text-sm leading-relaxed text-slate-600">
 
 小组成员：022330225 黄耘青 / 202330218 何东泽 / 162340124 吴承骏
+
 汇报人：022330225 黄耘青  
+
 日期：4月23日
 
 </div>
