@@ -2,9 +2,10 @@
 
 from phantom_seed.ai.prompts.character import build_character_messages
 from phantom_seed.ai.prompts.scene import (
+    build_scene_metadata_messages,
     build_scene_plan_messages,
     build_scene_review_messages,
-    build_scene_write_messages,
+    build_scene_script_messages,
 )
 from phantom_seed.ai.prompts.system import CHARACTER_SYSTEM_MESSAGE, SYSTEM_MESSAGE
 from phantom_seed.ai.prompts.visual import (
@@ -20,7 +21,8 @@ __all__ = [
     "SYSTEM_MESSAGE",
     "VISUAL_PROMPT_TEMPLATE",
     "build_character_messages",
+    "build_scene_metadata_messages",
     "build_scene_plan_messages",
     "build_scene_review_messages",
-    "build_scene_write_messages",
+    "build_scene_script_messages",
 ]

@@ -74,6 +74,10 @@ class Engine:
         self._backlog: list[BacklogEntry] = []
         # Phase before overlay was opened (to restore on close)
         self._pre_overlay_phase = GamePhase.DIALOGUE
+        self._auto_mode = False
+        self._skip_mode = False
+        self._auto_elapsed = 0
+        self._current_location_label = ""
 
         # Fonts
         self._title_font: pygame.font.Font | None = None
@@ -139,6 +143,7 @@ class Engine:
                     # Sync text speed to dialogue box
                     assert self.dialogue_box is not None
                     self.dialogue_box.set_text_speed(self.config.text_speed_ms)
+                    self._apply_display_mode()
                 return
 
             # Save overlay intercepts all events when active
@@ -209,18 +214,28 @@ class Engine:
             self.running = False
 
     def _handle_dialogue_event(self, event: pygame.event.Event) -> None:
+        assert self.dialogue_box is not None
+        if event.type == pygame.MOUSEMOTION:
+            self.dialogue_box.handle_mouse_move(event.pos)
+            return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            assert self.dialogue_box is not None
+            action = self.dialogue_box.action_at(event.pos)
+            if action:
+                self._handle_dialogue_control(action)
+                return
             if not self.dialogue_box.finished:
                 self.dialogue_box.skip()
             else:
                 self._advance_dialogue()
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-            assert self.dialogue_box is not None
             if not self.dialogue_box.finished:
                 self.dialogue_box.skip()
             else:
                 self._advance_dialogue()
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_a:
+            self._handle_dialogue_control("auto")
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_TAB:
+            self._handle_dialogue_control("skip")
 
     def _handle_choice_event(self, event: pygame.event.Event) -> None:
         assert self.choice_menu is not None
@@ -231,6 +246,14 @@ class Engine:
             if chosen:
                 self.choice_menu.hide()
                 # Start generating next scene with the chosen option
+                assert self.pipeline is not None
+                self.pipeline.request_next(chosen.text, chosen.target_state_delta)
+                self.phase = GamePhase.LOADING
+        elif event.type == pygame.KEYDOWN and event.unicode in {"1", "2", "3"}:
+            index = int(event.unicode) - 1
+            if 0 <= index < len(self.choice_menu.choices):
+                chosen = self.choice_menu.choices[index]
+                self.choice_menu.hide()
                 assert self.pipeline is not None
                 self.pipeline.request_next(chosen.text, chosen.target_state_delta)
                 self.phase = GamePhase.LOADING
@@ -251,6 +274,7 @@ class Engine:
         elif self.phase == GamePhase.DIALOGUE:
             assert self.dialogue_box is not None
             self.dialogue_box.update(dt_ms)
+            self._update_dialogue_modes(dt_ms)
         elif self.phase == GamePhase.TRANSITION:
             self._update_transition(dt_ms)
 
@@ -306,6 +330,8 @@ class Engine:
 
     def _handle_overlay_action(self, action: str) -> None:
         if action == "close":
+            if self.phase not in (GamePhase.MAIN_MENU, GamePhase.LOADING, GamePhase.ENDING):
+                self.phase = self._pre_overlay_phase
             return
         if action == "qsave":
             self._quicksave()
@@ -323,6 +349,9 @@ class Engine:
             assert self.save_overlay is not None
             self._pre_overlay_phase = self.phase
             self.save_overlay.open_backlog(self._backlog)
+        elif action == "config":
+            assert self.settings_overlay is not None
+            self.settings_overlay.open()
         elif action.startswith("save:"):
             slot = action.split(":", 1)[1]
             if self.coordinator:
@@ -359,12 +388,16 @@ class Engine:
 
         # Restore backlog
         self._backlog = [BacklogEntry(**e) for e in data.backlog]
+        self._auto_mode = False
+        self._skip_mode = False
+        self._auto_elapsed = 0
 
         # Restore scene and dialogue index
         self._dialogue_index = data.dialogue_index
         if self.coordinator.current_scene:
             scene = self.coordinator.current_scene
             self.current_scene = scene
+            self._current_location_label = self._derive_location_label(scene.background)
             self.scene_renderer.set_active_speaker("")
             self.scene_renderer.apply_scene(scene)
             self.phase = GamePhase.DIALOGUE
@@ -390,6 +423,10 @@ class Engine:
         self.current_scene = None
         self._dialogue_index = 0
         self._backlog.clear()
+        self._auto_mode = False
+        self._skip_mode = False
+        self._auto_elapsed = 0
+        self._current_location_label = ""
 
         self.phase = GamePhase.LOADING
         self._loading_dots = 0
@@ -399,6 +436,8 @@ class Engine:
         """Apply a new scene to the UI."""
         self.current_scene = scene
         self._dialogue_index = 0
+        self._auto_elapsed = 0
+        self._current_location_label = self._derive_location_label(scene.background)
 
         assert self.scene_renderer is not None
         self.scene_renderer.set_active_speaker("")
@@ -418,6 +457,7 @@ class Engine:
     def _set_current_dialogue(self) -> None:
         assert self.current_scene is not None
         assert self.dialogue_box is not None
+        self._auto_elapsed = 0
         if self._dialogue_index < len(self.current_scene.script):
             line = self.current_scene.script[self._dialogue_index]
             if self.scene_renderer is not None:
@@ -434,6 +474,7 @@ class Engine:
                     if bg:
                         self.scene_renderer.background = bg
                         self.scene_renderer.bg_path = cached
+                self._current_location_label = self._derive_location_label(line.scene_transition)
             self.dialogue_box.set_dialogue(
                 line.speaker,
                 line.text,
@@ -458,6 +499,7 @@ class Engine:
     def _advance_dialogue(self) -> None:
         """Move to the next dialogue line, or show choices."""
         assert self.current_scene is not None
+        self._auto_elapsed = 0
         self._dialogue_index += 1
         if self._dialogue_index < len(self.current_scene.script):
             self._set_current_dialogue()
@@ -467,6 +509,7 @@ class Engine:
                 self.phase = GamePhase.ENDING
             elif self.current_scene.choices:
                 assert self.choice_menu is not None
+                self._skip_mode = False
                 self.choice_menu.show(self.current_scene.choices)
                 self.phase = GamePhase.CHOICE
             else:
@@ -474,6 +517,72 @@ class Engine:
                 assert self.pipeline is not None
                 self.pipeline.request_next()
                 self.phase = GamePhase.LOADING
+
+    def _handle_dialogue_control(self, action: str) -> None:
+        if action == "auto":
+            self._auto_mode = not self._auto_mode
+            if self._auto_mode:
+                self._skip_mode = False
+            self._auto_elapsed = 0
+            return
+        if action == "skip":
+            self._skip_mode = not self._skip_mode
+            if self._skip_mode:
+                self._auto_mode = False
+                if self.dialogue_box and not self.dialogue_box.finished:
+                    self.dialogue_box.skip()
+            self._auto_elapsed = 0
+            return
+        if action in {"qsave", "qload", "save", "load", "backlog", "config"}:
+            self._handle_overlay_action(action)
+
+    def _update_dialogue_modes(self, dt_ms: int) -> None:
+        assert self.dialogue_box is not None
+        if self._skip_mode:
+            if not self.dialogue_box.finished:
+                self.dialogue_box.skip()
+                return
+            self._auto_elapsed += dt_ms
+            if self._auto_elapsed >= 80:
+                self._advance_dialogue()
+            return
+        if self._auto_mode and self.dialogue_box.finished:
+            self._auto_elapsed += dt_ms
+            if self._auto_elapsed >= max(120, self.config.auto_play_ms):
+                self._advance_dialogue()
+
+    def _apply_display_mode(self) -> None:
+        assert self.screen is not None
+        desired_flags = pygame.FULLSCREEN if self.config.fullscreen else 0
+        current_flags = self.screen.get_flags()
+        is_fullscreen = bool(current_flags & pygame.FULLSCREEN)
+        if bool(desired_flags & pygame.FULLSCREEN) == is_fullscreen:
+            return
+        self.screen = pygame.display.set_mode(
+            (self.config.screen_width, self.config.screen_height),
+            desired_flags,
+        )
+
+    @staticmethod
+    def _derive_location_label(raw: str) -> str:
+        if not raw:
+            return "未命名场景"
+        import re
+        from pathlib import Path
+
+        candidate = raw
+        maybe_path = Path(raw)
+        if maybe_path.suffix:
+            candidate = maybe_path.stem.replace("_", " ")
+        candidate = candidate.replace("\\n", " ")
+        parts = re.split(r"[,|;/]", candidate)
+        picked = " ".join(part.strip() for part in parts[:2] if part.strip())
+        picked = re.sub(r"\s+", " ", picked).strip()
+        if not picked:
+            return "未命名场景"
+        if any("a" <= ch.lower() <= "z" for ch in picked):
+            return picked.title()[:32]
+        return picked[:20]
 
     # ── Render ──────────────────────────────────────────────────
 
@@ -612,12 +721,19 @@ class Engine:
                 self.coordinator.state.affection,
                 self.coordinator.state.active_heroine,
                 self.coordinator.state.route_phase,
+                chapter_beat=self.coordinator.state.chapter_beat,
+                relationship_stage=self.coordinator.state.relationship_stage,
+                location_label=self._current_location_label,
             )
 
         # Dialogue
         if self.phase in (GamePhase.DIALOGUE, GamePhase.TRANSITION):
             assert self.dialogue_box is not None
-            self.dialogue_box.render(self.screen)
+            self.dialogue_box.render(
+                self.screen,
+                auto_mode=self._auto_mode,
+                skip_mode=self._skip_mode,
+            )
 
         # Choices
         if self.phase == GamePhase.CHOICE:

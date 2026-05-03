@@ -248,6 +248,14 @@ class SceneRenderer:
         else:
             screen.fill((50, 40, 55))
 
+        ambience = pygame.Surface((self.screen_w, self.screen_h), pygame.SRCALPHA)
+        pygame.draw.rect(ambience, (0, 0, 0, 22), ambience.get_rect())
+        pygame.draw.rect(ambience, (255, 220, 230, 10), ambience.get_rect(), 1)
+        floor_glow = pygame.Surface((self.screen_w, 220), pygame.SRCALPHA)
+        floor_glow.fill((12, 8, 12, 76))
+        ambience.blit(floor_glow, (0, self.screen_h - 220))
+        screen.blit(ambience, (0, 0))
+
         # Sprites hidden for CG scenes (CG image covers the full canvas)
         if not self.hide_sprites:
             visible = [s for s in self.characters.values() if s.visible]
